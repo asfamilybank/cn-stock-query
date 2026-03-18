@@ -1,11 +1,12 @@
 name: cn-stock-query
-version: 1.0.0
+version: 1.0.2
 author: asfamilybank
 description: >
   查询中国 A 股股票、场内 ETF、场外基金的实时/最新价格，支持批量查询和持仓市值计算。
   Use when: 用户提到"查股价""查净值""行情""最新价""持仓市值""实时价格"等。
   NOT for: 美股、港股、加密货币、期货、期权。
 license: MIT
+repository: https://github.com/asfamilybank/cn-stock-query
 
 permissions:
   - network

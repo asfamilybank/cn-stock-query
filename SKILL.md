@@ -4,6 +4,8 @@ description: >
   查询中国 A 股股票、场内 ETF 及场外基金的实时行情与最新净值。
   Use when: 用户要求查询股价、基金净值、ETF 价格，或需要计算持仓市值时。
   NOT for: 美股（含中概 ADR）、港股、加密货币、期货、期权。
+metadata: {"openclaw":{"emoji":"📈","requires":{"bins":["curl","iconv","bc"],"os":["darwin","linux"]}}}
+tools: [shell]
 ---
 
 # 中国 A 股/ETF/基金 实时价格查询

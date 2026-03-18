@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.0.2] - 2026-03-18
+
+### Fixed
+- SKILL.md frontmatter 添加 `metadata.openclaw.requires.bins` 声明运行时依赖（curl, iconv, bc）
+- SKILL.md frontmatter 添加 `tools: [shell]` 声明使用的工具类型
+- skill.yaml 添加 `repository` 字段指向源码仓库
+- clawhub.json 添加 `repository` 字段
+- 解决 ClawHub 安全扫描标记的"未声明二进制依赖"和"缺少源码仓库 URL"问题
+
+## [1.0.1] - 2026-03-18
+
+### Fixed
+- 替换示例中的个人持仓数据为通用虚构数据
+
 ## [1.0.0] - 2026-03-18
 
 ### Added
