@@ -1,0 +1,37 @@
+name: cn-stock-query
+version: 1.0.0
+author: asfamilybank
+description: >
+  查询中国 A 股股票、场内 ETF、场外基金的实时/最新价格，支持批量查询和持仓市值计算。
+  Use when: 用户提到"查股价""查净值""行情""最新价""持仓市值""实时价格"等。
+  NOT for: 美股、港股、加密货币、期货、期权。
+license: MIT
+
+permissions:
+  - network
+  - shell
+
+config:
+  portfolio_file:
+    type: string
+    required: false
+    default: ""
+    description: "可选：持仓文件路径（CSV/JSON），用于批量查询和计算市值"
+
+entryPoint:
+  type: natural
+  prompt: |
+    你是一个中国 A 股行情查询助手。根据 SKILL.md 中的工作流程，
+    识别用户提供的标的代码，调用对应的行情接口，返回结构化的价格数据。
+    所有新浪接口的 curl 响应必须通过 iconv -f GBK -t UTF-8 转码。
+
+triggers:
+  keywords:
+    - "查股价"
+    - "查行情"
+    - "查净值"
+    - "最新价"
+    - "stock price"
+    - "实时价格"
+    - "持仓市值"
+    - "基金估值"
