@@ -22,6 +22,21 @@
 - 版本号在 `skill.yaml` 和 `clawhub.json` 中同步维护
 - **ClawHub 发布**：只在 openclaw skill（`skill.yaml`、根目录 `SKILL.md`、`scripts/`）有实质功能变化时才执行；`claude/` 目录的改动不需要触发 ClawHub 发布
 
+### ClawHub 发布流程
+
+`clawhub publish .` 在项目根目录会因 `claude/SKILL.md` 干扰报 "SKILL.md required"，必须从临时目录发布：
+
+```bash
+mkdir -p /tmp/stock-query   # 目录名必须与 slug 一致，否则会成为 display name
+cp SKILL.md skill.yaml /tmp/stock-query/
+cp -r scripts /tmp/stock-query/
+npx clawhub publish /tmp/stock-query --version X.X.X --slug stock-query
+rm -rf /tmp/stock-query
+```
+
+- `SKILL.md` frontmatter 只允许 `name` + `description`，不可有 `metadata`/`tools`
+- 发布文件范围：`SKILL.md`、`skill.yaml`、`scripts/`（不含 `claude/`、`tests/`、`clawhub.json`）
+
 ## 测试
 
 ```bash
