@@ -9,6 +9,8 @@
 | `SKILL.md` + `skill.yaml` | OpenClaw | 自然语言关键词，`npx clawhub install` 安装 |
 | `claude/SKILL.md` | Claude Code 原生 | `/stock-query` slash command |
 
+> ⚠️ `claude/`（无点号）不是 Claude Code 标准 skill 路径。标准路径为 `.claude/skills/stock-query/SKILL.md`。当前状态待验证是否真正注册为 slash command。
+
 ## 修改规范
 
 **修改 skill 逻辑时，两个 SKILL.md 必须同步更新：**
@@ -19,8 +21,8 @@
 
 ## 版本与发布
 
-- 版本号在 `skill.yaml` 和 `clawhub.json` 中同步维护
-- **ClawHub 发布**：只在 openclaw skill（`skill.yaml`、根目录 `SKILL.md`、`scripts/`）有实质功能变化时才执行；`claude/` 目录的改动不需要触发 ClawHub 发布
+- 版本号在 `skill.yaml` 中维护（`clawhub.json` 仅作本地参考，不参与发布）
+- **ClawHub 发布**：只在 openclaw skill（`skill.yaml`、根目录 `SKILL.md`）有实质功能变化时才执行；`claude/` 目录的改动不需要触发 ClawHub 发布
 
 ### ClawHub 发布流程
 
@@ -29,13 +31,13 @@
 ```bash
 mkdir -p /tmp/stock-query   # 目录名必须与 slug 一致，否则会成为 display name
 cp SKILL.md skill.yaml /tmp/stock-query/
-cp -r scripts /tmp/stock-query/
 npx clawhub publish /tmp/stock-query --version X.X.X --slug stock-query
 rm -rf /tmp/stock-query
 ```
 
 - `SKILL.md` frontmatter 只允许 `name` + `description`，不可有 `metadata`/`tools`
-- 发布文件范围：`SKILL.md`、`skill.yaml`、`scripts/`（不含 `claude/`、`tests/`、`clawhub.json`）
+- 发布文件范围：`SKILL.md`、`skill.yaml`（不含 `scripts/`、`claude/`、`tests/`、`clawhub.json`）
+- `scripts/` 是独立工具脚本，skill 运行不依赖它们，无需发布
 
 ## 测试
 
