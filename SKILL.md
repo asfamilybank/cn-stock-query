@@ -1,10 +1,10 @@
 ---
 name: stock-query
-version: 2.1.0
+version: 2.1.1
 description: >
   查询全球主要市场股票实时行情：A 股、港股、美股，以及场内 ETF、场外基金、主要指数。
   需要：curl（HTTP 请求）、iconv（GBK→UTF-8 转码）。
-  Use when: 用户要求查询股价、基金净值、ETF 价格、大盘指数，或需要计算持仓市值时。
+  TRIGGER when: 用户要求查看股价、行情、净值、持仓盈亏、大盘指数时，直接调用，无需等待斜杠命令。
   NOT for: 加密货币、期货、期权、外汇。
 ---
 
@@ -45,12 +45,12 @@ description: >
 
 version 输出：
 ```
-stock-query v2.1.0
+stock-query v2.1.1
 ```
 
 help 输出：
 ```
-stock-query v2.1.0 — 全球股票/ETF/基金/指数实时行情查询
+stock-query v2.1.1 — 全球股票/ETF/基金/指数实时行情查询
 
 用法：
   /stock-query <代码> [代码2 ...]   查询一个或多个标的
