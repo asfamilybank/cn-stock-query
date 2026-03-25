@@ -45,14 +45,14 @@ rm -rf /tmp/stock-query
 ```
 
 - `examples/` 需要一并发布，install 时会将其安装到 skill 目录
-- `scripts/portfolio.sh` 是 Command 3 的文件操作后端，**必须随 skill 发布**，安装后位于 skill 目录根
+- `scripts/portfolio.sh` **必须随 skill 发布**（历史兼容）；v2.2.0 起 Command 3 内置 grep/awk 直接操作 portfolio.csv，不再依赖此脚本
 - `scripts/` 中其他脚本（query_price.sh、monitor.sh）是独立工具，skill 运行不依赖，无需发布
 
 ## 关键目录与文件
 
 | 路径 | 用途 |
 |------|------|
-| `scripts/portfolio.sh` | Command 3 文件操作后端，**随 skill 发布**，安装后位于 skill 目录根 |
+| `scripts/portfolio.sh` | **随 skill 发布**（历史兼容）；v2.2.0 起 Command 3 改为内联 bash，不再依赖此脚本 |
 | `scripts/` | 其他独立工具脚本（query_price.sh 批量查询、monitor.sh 接口监控） |
 | `claude/` | Claude Code 原生格式 skill |
 | `examples/portfolio.csv` | 自选股/持仓文件示例模板，随 skill 一起安装到 skill 目录 |
@@ -78,7 +78,12 @@ rm -rf /tmp/stock-query
 - **腾讯财经**（`qt.gtimg.cn`）— 首选，支持 A 股/港股/美股，GBK 编码，`~` 分隔字段
 - **新浪财经**（`hq.sinajs.cn`）— A 股备用，GBK 编码，`,` 分隔字段，需 `Referer` header
 - 两者响应均需 `| iconv -f GBK -t UTF-8` 转码
+- **东方财富行情**（`push2.eastmoney.com`）— 港股/美股备用，UTF-8，JSON 响应，无需 iconv；港股 `secid=116.xxxxx`；美股先试 `secid=105.TICKER`（NASDAQ），null 时试 `106.TICKER`（NYSE）；`fltt=2` 参数直接返回浮点值，f43=最新价 f58=名称 f169=涨跌额 f170=涨跌幅%
 
 腾讯 API 前缀：`sh`/`sz`(A股) · `hk`(港股5位) · `us`+ticker(美股) · `us.XXX`(美股指数)
 腾讯字段索引（`~` 分隔）：[1]名称 [3]最新价 [4]昨收 [30]日期时间 [31]涨跌额 [32]涨跌幅% [33]最高 [34]最低
 频率限制：≤100 代码/次，间隔 ≥100ms，过度调用封 IP
+
+## 注意事项
+
+- **git commit**：不可用 heredoc（`-m "$(cat <<'EOF'...)"`），会触发 1Password 填充失败；改用 `-m "多行字符串"` 形式
