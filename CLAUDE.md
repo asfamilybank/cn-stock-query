@@ -9,6 +9,13 @@
 | `SKILL.md` + `skill.yaml` | OpenClaw | 自然语言关键词，`npx clawhub install` 安装 |
 | `claude/SKILL.md` | Claude Code 原生 | `/stock-query` slash command |
 
+## claude/SKILL.md description 写法规范
+
+`description` 字段决定 Claude 是否主动识别用户意图调用 skill（不等待斜杠命令）：
+- 必须包含 `TRIGGER when: <触发条件>` — 否则 Claude 会绕过 skill 自己实现
+- 必须包含 `NOT for: <排除场景>` — 防止误触发
+- 格式参考根目录 `SKILL.md` 的 `Use when` / `NOT for` 字段，两者语义对齐
+
 > ⚠️ `claude/`（无点号）不是 Claude Code 标准 skill 路径。标准路径为 `.claude/skills/stock-query/SKILL.md`。当前状态待验证是否真正注册为 slash command。
 
 ## 修改规范
