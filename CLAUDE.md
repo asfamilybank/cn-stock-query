@@ -31,6 +31,7 @@
 - 版本号需在三处同步维护：`skill.yaml`、`SKILL.md`（frontmatter）、`claude/SKILL.md`（frontmatter）（`clawhub.json` 仅作本地参考，不参与发布）
 - 注意：两个 SKILL.md 的 Step 0 正文含硬编码版本字符串（`stock-query vX.X.X`），bump 时需用 `replace_all` 一并替换
 - **ClawHub 发布**：只在 openclaw skill（`skill.yaml`、根目录 `SKILL.md`）有变化时执行；description/触发条件改动发 patch，功能改动发 minor/major；`claude/` 目录的改动不需要触发 ClawHub 发布
+- **ClawHub 安全扫描**：扫描器检查以下类别：Purpose & Capability（功能与描述一致性）、Instruction Scope（操作边界明确性）、Credentials（环境变量声明完整性）、Persistence & Privilege（权限组合说明）。修改 skill.yaml/SKILL.md 后如触发扫描警告，参见下方"安全扫描修复规范"。
 
 ### ClawHub 发布流程
 
@@ -64,6 +65,13 @@ rm -rf /tmp/stock-query
 - 名称/持仓/成本价均可留空；持仓为 0 表示纯自选（只查行情）
 - 修改 Step 6 逻辑时，6a（文件加载）和 6b（手动输入）均需同步维护
 - `examples/portfolio.csv` 随 skill 一起发布，install.sh 和 clawhub 安装后均可在 skill 目录下找到
+
+## 安全扫描修复规范（ClawHub OpenClaw Scanner）
+
+- **Credentials / 未声明环境变量**：`skill.yaml` 需在 `env:` 块中显式声明脚本使用的所有环境变量（如 `PORTFOLIO_FILE`），与 `config:` 分开维护
+- **Purpose & Capability**：`description` 必须涵盖 skill 的全部能力（含文件管理等非只读操作），不能只描述主功能
+- **Instruction Scope**：SKILL.md 需有"权限与操作范围"章节，明确：① 每个权限的具体用途和限制，② 文件操作仅在用户显式指令下触发，③ 网络访问仅限声明的域名白名单
+- **Persistence & Privilege**：`permissions:` 条目加内联注释（`# 用途: ...`）说明各权限的限制范围
 
 ## 数据源
 
