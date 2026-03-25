@@ -1,7 +1,12 @@
 ---
 name: stock-query
 version: 2.1.0
-description: 查询全球股票实时行情（A股/港股/美股）、ETF、场外基金及主要指数。用法：/stock-query AAPL 00700 601991
+description: >
+  查询全球主要市场股票实时行情：A 股、港股、美股，以及场内 ETF、场外基金、主要指数。
+  需要：curl（HTTP 请求）、iconv（GBK→UTF-8 转码）。
+  TRIGGER when: 用户要求查看股价、行情、净值、持仓盈亏、大盘指数时，直接调用，无需等待斜杠命令。
+  NOT for: 加密货币、期货、期权、外汇。
+  用法：/stock-query AAPL 00700 601991
 user-invocable: true
 allowed-tools:
   - Bash
