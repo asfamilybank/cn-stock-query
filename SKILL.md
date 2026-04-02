@@ -1,6 +1,6 @@
 ---
 name: stock-query
-version: 2.3.7
+version: 2.3.8
 description: >
   查询全球主要市场股票实时行情（A 股、港股、美股、ETF、场外基金、主要指数），支持批量查询与持仓市值计算。
   同时支持在用户显式指令下管理本地 portfolio.csv 自选股/持仓文件（增/删/改/查）；文件仅含股票代码、名称、持仓、成本价，禁止存放账户凭证或密钥。
@@ -57,12 +57,12 @@ allowed-tools:
 
 version 输出：
 ```
-stock-query v2.3.7
+stock-query v2.3.8
 ```
 
 help 输出：
 ```
-stock-query v2.3.7 — 全球股票/ETF/基金/指数实时行情查询
+stock-query v2.3.8 — 全球股票/ETF/基金/指数实时行情查询
 
 用法：
   /stock-query <代码> [代码2 ...]   查询一个或多个标的

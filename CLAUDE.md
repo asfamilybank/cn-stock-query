@@ -36,7 +36,7 @@ mkdir -p /tmp/stock-query/scripts
 cp SKILL.md /tmp/stock-query/
 cp skill.yaml /tmp/stock-query/
 cp -r assets /tmp/stock-query/
-cp scripts/sq.sh scripts/portfolio.sh scripts/query_price.sh /tmp/stock-query/scripts/
+cp scripts/sq.sh scripts/portfolio.sh /tmp/stock-query/scripts/
 npx clawhub publish /tmp/stock-query --version X.X.X --slug stock-query
 rm -rf /tmp/stock-query
 ```
@@ -45,7 +45,7 @@ rm -rf /tmp/stock-query
 - 发布目录结构需与项目一致：`scripts/sq.sh`、`scripts/portfolio.sh`、`scripts/query_price.sh` 均在 `scripts/` 子目录下
 - `assets/` 需要一并发布，install 时会将其安装到 skill 目录
 - `scripts/portfolio.sh` **必须随 skill 发布**（历史兼容）；v2.2.0 起 Command 1 内置 grep/awk 直接操作 portfolio.csv，不再依赖此脚本
-- `scripts/query_price.sh` 随 skill 发布，供用户独立使用；`scripts/monitor.sh` 是内部工具，无需发布
+- `scripts/query_price.sh`、`scripts/monitor.sh` 均不发布到 ClawHub（`query_price.sh` 含人类可读 INFO/WARN/ERROR stdout 输出，会触发扫描器误报；用户可从 GitHub 获取）
 
 ## 关键目录与文件
 
@@ -53,7 +53,7 @@ rm -rf /tmp/stock-query
 |------|------|
 | `scripts/sq.sh` | 行情查询 CLI，**随 skill 发布**，`sq get`/`sq fund`/`sq pfile` 三个子命令 |
 | `scripts/portfolio.sh` | **随 skill 发布**（历史兼容）；v2.2.0 起 Command 1 改为内联 bash，不再依赖此脚本 |
-| `scripts/query_price.sh` | 批量查询独立脚本，**随 skill 发布**，供用户直接使用 |
+| `scripts/query_price.sh` | 批量查询独立脚本，**不随 skill 发布**（见上），供用户从 GitHub 获取直接使用 |
 | `scripts/monitor.sh` | 接口监控内部工具，不参与发布 |
 | `assets/portfolio.csv` | 自选股/持仓文件示例模板，随 skill 一起安装到 skill 目录 |
 
