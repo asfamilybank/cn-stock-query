@@ -23,7 +23,8 @@
 
 ## 版本与发布
 
-- 版本号需在两处同步维护：`skill.yaml`、`SKILL.md`（frontmatter）（`clawhub.json` 仅作本地参考，不参与发布）
+- **发布顺序**：先跑 `bash tests/datasource_check.sh && bash tests/check.sh` 全过，再 bump 版本，再发 ClawHub；禁止在测试前 bump
+- 版本号需在三处同步维护：`skill.yaml`、`SKILL.md`（frontmatter）、`clawhub.json`（发布时 ClawHub 从中获取 tagline、description、category、tags 等元数据）
 - 注意：`SKILL.md` Step 0 正文含硬编码版本字符串（`stock-query vX.X.X`），bump 时需用 `replace_all` 一并替换
 - **ClawHub 发布**：只在 openclaw skill（`skill.yaml`、根目录 `SKILL.md`）有变化时执行；description/触发条件改动发 patch，功能改动发 minor/major；`claude/` 目录的改动不需要触发 ClawHub 发布
 - **ClawHub 安全扫描**：扫描器检查以下类别：Purpose & Capability（功能与描述一致性）、Instruction Scope（操作边界明确性）、Credentials（环境变量声明完整性）、Persistence & Privilege（权限组合说明）。修改 skill.yaml/SKILL.md 后如触发扫描警告，参见下方"安全扫描修复规范"。
@@ -32,25 +33,26 @@
 
 ```bash
 mkdir -p /tmp/stock-query/scripts
-cp SKILL.md skill.yaml /tmp/stock-query/
+cp SKILL.md /tmp/stock-query/
 cp -r examples /tmp/stock-query/
-cp scripts/sq scripts/portfolio.sh /tmp/stock-query/scripts/
+cp scripts/sq.sh scripts/portfolio.sh scripts/query_price.sh /tmp/stock-query/scripts/
 npx clawhub publish /tmp/stock-query --version X.X.X --slug stock-query
 rm -rf /tmp/stock-query
 ```
 
-- 发布目录结构需与项目一致：`scripts/sq`、`scripts/portfolio.sh` 均在 `scripts/` 子目录下
+- 发布目录结构需与项目一致：`scripts/sq.sh`、`scripts/portfolio.sh`、`scripts/query_price.sh` 均在 `scripts/` 子目录下
 - `examples/` 需要一并发布，install 时会将其安装到 skill 目录
 - `scripts/portfolio.sh` **必须随 skill 发布**（历史兼容）；v2.2.0 起 Command 1 内置 grep/awk 直接操作 portfolio.csv，不再依赖此脚本
-- `scripts/` 中其他脚本（query_price.sh、monitor.sh）是独立工具，skill 运行不依赖，无需发布
+- `scripts/query_price.sh` 随 skill 发布，供用户独立使用；`scripts/monitor.sh` 是内部工具，无需发布
 
 ## 关键目录与文件
 
 | 路径 | 用途 |
 |------|------|
+| `scripts/sq.sh` | 行情查询 CLI，**随 skill 发布**，`sq get`/`sq fund`/`sq pfile` 三个子命令 |
 | `scripts/portfolio.sh` | **随 skill 发布**（历史兼容）；v2.2.0 起 Command 1 改为内联 bash，不再依赖此脚本 |
-| `scripts/` | 其他独立工具脚本（query_price.sh 批量查询、monitor.sh 接口监控） |
-| `scripts/sq` | 行情查询 CLI，`sq get`/`sq fund`/`sq pfile` 三个子命令 |
+| `scripts/query_price.sh` | 批量查询独立脚本，**随 skill 发布**，供用户直接使用 |
+| `scripts/monitor.sh` | 接口监控内部工具，不参与发布 |
 | `examples/portfolio.csv` | 自选股/持仓文件示例模板，随 skill 一起安装到 skill 目录 |
 
 ### portfolio_file 使用规范
@@ -89,15 +91,17 @@ rm -rf /tmp/stock-query
 ## 测试注意事项
 
 - **测试套件**：`tests/` 目录下有完整 L0-L6 测试套件，流程见 `tests/README.md`，用例见 `tests/cases.md`，结果记录到 `tests/results/YYYY-MM-DD.md`（gitignored）
-- **Shell 自动层**：L0（`datasource_check.sh`）、L1+L2（`check.sh`）为 shell 自动断言，无需 agent；L3-L6 为 agent 半自动
+- **Shell 自动层**：L0（`datasource_check.sh`）、L1-L6（`check.sh`，38 项）全部为 shell 自动断言，无需 agent
 - **快速回归**：`bash tests/datasource_check.sh && bash tests/check.sh`（~80s，exit 0 即全通过）
 - **测试前执行**：`bash tests/install_local.sh`（同步当前开发内容到 openclaw 路径），修改后需重开 openclaw session 才能加载新 skill
-- **install_local.sh 覆盖范围**：同步到 `~/.openclaw/workspace/skills/stock-query/`；若 `~/.claude/skills/stock-query/` 存在也一并同步（含 `scripts/sq`）
+- **install_local.sh 覆盖范围**：同步到 `~/.openclaw/workspace/skills/stock-query/`；若 `~/.claude/skills/stock-query/` 存在也一并同步（含 `scripts/sq.sh`）
 - **L6 前置**：备份并替换 portfolio.csv（路径：`~/.openclaw/workspace/skills/stock-query/portfolio.csv`）
 - **PORTFOLIO_FILE 环境变量**不透传到 openclaw agent 执行环境，测试只能用默认路径
+- **东方财富 push2 API**：`push2.eastmoney.com` 直接 curl 无额外 headers 返回空响应（HTTP 52），L0 DS-5/DS-6 失败时优先排查 headers 而非网络连通性；主力腾讯源正常则不影响功能
 
 ## Skill 指令调优方法论
 
 - **文字禁令效果有限**：`禁止做X` 类指令对持续性行为问题效果不稳定
 - **有效方案**：改为伪代码分步逻辑（`Step A: ... Step B: ... Step D: 不得跳过`），明确执行顺序比措辞强调更有效——TC-5.4 持仓=0 条目缺失问题经 4 次迭代，伪代码方案最终生效
 - **版本分级**：指令调优 → patch；功能新增/流程变更 → minor/major
+- **Command 编号**：Command 1 = Portfolio 文件管理（优先路由），Command 2 = 行情查询（默认 fallback），无 Command 0/3

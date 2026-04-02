@@ -1,6 +1,6 @@
 ---
 name: stock-query
-version: 2.3.1
+version: 2.3.4
 description: >
   查询全球主要市场股票实时行情：A 股、港股、美股，以及场内 ETF、场外基金、主要指数。
   TRIGGER when: 用户要求查看股价、行情、净值、持仓盈亏、大盘指数时，直接调用，无需等待斜杠命令。
@@ -17,8 +17,8 @@ allowed-tools:
 
 | 权限 | 声明用途 | 限制 |
 |------|---------|------|
-| `network` | `scripts/sq` 内部调用行情 API | 仅限 `qt.gtimg.cn`、`hq.sinajs.cn`、`push2.eastmoney.com`、`fundgz.1234567.com.cn`、`api.fund.eastmoney.com` 五个数据源，不发送用户个人数据 |
-| `shell` | 执行 `scripts/sq`、读写 `portfolio.csv` | 仅执行已声明操作；不执行任意命令 |
+| `network` | `scripts/sq.sh` 内部调用行情 API | 仅限 `qt.gtimg.cn`、`hq.sinajs.cn`、`push2.eastmoney.com`、`fundgz.1234567.com.cn`、`api.fund.eastmoney.com` 五个数据源，不发送用户个人数据 |
+| `shell` | 执行 `scripts/sq.sh`、读写 `portfolio.csv` | 仅执行已声明操作；不执行任意命令 |
 
 **文件访问：** 本 skill 仅在用户**显式指令**下读写 `portfolio.csv` 一个文件。路径由 `PORTFOLIO_FILE` 环境变量指定；未配置时在默认安装目录（`~/.openclaw/workspace/skills/stock-query/` 或 `~/.claude/skills/stock-query/`）下查找。
 
@@ -30,7 +30,7 @@ allowed-tools:
 
 | 工具 | 说明 |
 |------|------|
-| `scripts/sq` | 行情查询 CLI，内部使用 `curl` + `iconv` |
+| `scripts/sq.sh` | 行情查询 CLI，内部使用 `curl` + `iconv` |
 
 ## 支持的市场与标的
 
@@ -53,12 +53,12 @@ allowed-tools:
 
 version 输出：
 ```
-stock-query v2.3.1
+stock-query v2.3.4
 ```
 
 help 输出：
 ```
-stock-query v2.3.1 — 全球股票/ETF/基金/指数实时行情查询
+stock-query v2.3.4 — 全球股票/ETF/基金/指数实时行情查询
 
 用法：
   /stock-query <代码> [代码2 ...]   查询一个或多个标的
@@ -88,9 +88,11 @@ stock-query v2.3.1 — 全球股票/ETF/基金/指数实时行情查询
 
 ---
 
-## 静默执行原则
+## 静默执行原则（Claude 对话输出约束）
 
 **⛔ 严禁向用户输出任何中间推理或过程信息。** 这是最高优先级约束，覆盖所有步骤。
+
+> 本约束仅适用于 Claude 的对话文本输出。`scripts/sq.sh` 仅向 stdout 输出结构化 JSON 数据（由 Claude 内部消费），向 stderr 输出错误/用法提示，不向用户界面打印任何过程信息。
 
 以下内容**绝对禁止出现**在回复中：
 - 市场/类型判断（如"014978 是场外基金"）
@@ -139,7 +141,7 @@ stock-query v2.3.1 — 全球股票/ETF/基金/指数实时行情查询
 对所有代码执行一次批量查询：
 
 ```bash
-bash scripts/sq get <code1> [code2 ...]
+bash scripts/sq.sh get <code1> [code2 ...]
 ```
 
 输出为 JSON 数组，每个对象字段如下：
@@ -221,10 +223,11 @@ bash scripts/sq get <code1> [code2 ...]
 当用户指令涉及持仓/自选股（如"查我的持仓""看下自选股"），先定位文件再批量查询：
 
 ```bash
-PFILE=$(bash scripts/sq pfile)
+PFILE=$(bash scripts/sq.sh pfile)
 ```
 
 - 输出 `NOT_FOUND` → 立即输出创建引导（见 Command 1），停止执行
+- 输出 `PATH_REJECTED` → 提示"路径包含疑似凭证关键词，已拒绝操作"，停止执行
 - 否则读取文件，提取所有代码后用 `sq get` 批量查询
 
 执行步骤（严格按序）：
@@ -236,7 +239,7 @@ Step A: 读取全部条目
   codes_watch    = codes_all 中持仓 = 0 或空的条目
 
 Step B: 批量查询
-  bash scripts/sq get <codes_all 中所有代码>
+  bash scripts/sq.sh get <codes_all 中所有代码>
 
 Step C: 输出持仓市值表（若 codes_position 非空）
   横向宽表格：代码/名称/持仓/成本价/现价/市值/浮盈亏/盈亏比
@@ -291,11 +294,12 @@ CSV 解析规则：`#` 开头为注释，第一个非注释行为表头，名称
 ### 文件定位（每次进入 Command 1 必须首先执行）
 
 ```bash
-PFILE=$(bash scripts/sq pfile)
+PFILE=$(bash scripts/sq.sh pfile)
 echo "$PFILE"
 ```
 
 - 输出 `NOT_FOUND` → 立即向用户输出下方创建引导，停止执行，**不得创建任何替代文件**
+- 输出 `PATH_REJECTED` → 向用户提示"路径包含疑似凭证关键词（如 token、secret、.ssh 等），已拒绝操作"，停止执行
 - 否则将 `$PFILE` 用于所有后续操作
 
 **portfolio.csv 不存在时**，引导用户创建：
@@ -331,7 +335,7 @@ grep -v '^#' "$PFILE" | tail -n +2
 
 ### 增
 
-1. 用 `bash scripts/sq get <code>` 获取标的名称
+1. 用 `bash scripts/sq.sh get <code>` 获取标的名称
 2. 执行：
 ```bash
 if grep -q "^{code}," "$PFILE" 2>/dev/null; then
@@ -344,7 +348,7 @@ fi
 
 ### 改
 
-1. 用 `bash scripts/sq get <code>` 获取最新名称
+1. 用 `bash scripts/sq.sh get <code>` 获取最新名称
 2. 执行：
 ```bash
 OLD=$(grep "^{code}," "$PFILE")
