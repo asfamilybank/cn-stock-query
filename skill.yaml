@@ -1,11 +1,11 @@
 name: stock-query
-version: 2.3.5
+version: 2.3.6
 author: asfamilybank
 description: >
   查询全球主要市场股票实时行情：A 股、港股、美股，以及 ETF、场外基金、主要指数，支持批量查询和持仓市值计算。
   同时支持在用户显式指令下通过内联 bash 命令管理本地 portfolio.csv 自选股/持仓文件（增/删/改/查），文件仅含股票代码、名称、持仓、成本价，禁止存放账户凭证或密钥。
   需要：curl（行情 API 请求）、iconv（GBK→UTF-8 转码）。
-  文件访问：仅限 portfolio.csv（路径由 PORTFOLIO_FILE 环境变量或默认安装目录决定），不访问其他系统文件；路径包含 token/secret/.ssh 等凭证关键词时自动拒绝操作。
+  文件访问：仅限 portfolio.csv（固定在默认安装目录 ~/.openclaw/workspace/skills/stock-query/ 或 ~/.claude/skills/stock-query/ 下查找），不访问其他系统文件；路径包含 token/secret/.ssh 等凭证关键词时自动拒绝操作。
   网络访问：仅限 qt.gtimg.cn、hq.sinajs.cn、push2.eastmoney.com、fundgz.1234567.com.cn、api.fund.eastmoney.com 五个行情数据源。
   Use when: 用户提到"查股价""查净值""行情""最新价""持仓市值""实时价格""大盘""指数""港股""美股"等。
   NOT for: 加密货币、期货、期权、外汇。
@@ -19,19 +19,6 @@ repository: https://github.com/asfamilybank/stock-query
 permissions:
   - network  # 用途：curl 调用行情 API（仅限 qt.gtimg.cn / hq.sinajs.cn / push2.eastmoney.com / fundgz.1234567.com.cn / api.fund.eastmoney.com）
   - shell    # 用途：执行 curl、iconv 转码、grep/awk 文件操作（仅操作 portfolio.csv，不执行任意命令）
-
-env:
-  PORTFOLIO_FILE:
-    description: "portfolio.csv 文件绝对路径（可选）。与 config.portfolio_file 对应，优先级高于默认安装目录查找。仅应指向纯股票数据文件，禁止指向含凭证或密钥的文件。"
-    required: false
-    default: ""
-
-config:
-  portfolio_file:
-    type: string
-    required: false
-    default: ""
-    description: "可选：自选股/持仓文件路径（CSV 格式，格式参见同目录 assets/portfolio.csv）。设置后将作为 PORTFOLIO_FILE 环境变量传递给 portfolio.sh。留空时 portfolio.sh 在默认安装目录（~/.openclaw/workspace/skills/stock-query/ 或 ~/.claude/skills/stock-query/）下查找 portfolio.csv；文件不存在时 skill 会引导用户从 assets/portfolio.csv 复制创建。文件操作仅在用户显式指令下执行。⚠️ 安全提示：本 skill 具有 shell + network 权限，请勿将此项指向含账户凭证、API 密钥或其他敏感信息的文件。"
 
 entryPoint:
   type: natural

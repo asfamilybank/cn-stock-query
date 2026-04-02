@@ -34,12 +34,14 @@
 ```bash
 mkdir -p /tmp/stock-query/scripts
 cp SKILL.md /tmp/stock-query/
+cp skill.yaml /tmp/stock-query/
 cp -r assets /tmp/stock-query/
 cp scripts/sq.sh scripts/portfolio.sh scripts/query_price.sh /tmp/stock-query/scripts/
 npx clawhub publish /tmp/stock-query --version X.X.X --slug stock-query
 rm -rf /tmp/stock-query
 ```
 
+- **`skill.yaml` 必须随 SKILL.md 一起发布**：其 `env:`/`permissions:` 声明是安全扫描器识别凭证与权限范围的机器可读来源，缺失会触发 Credentials/Instruction Scope 警告
 - 发布目录结构需与项目一致：`scripts/sq.sh`、`scripts/portfolio.sh`、`scripts/query_price.sh` 均在 `scripts/` 子目录下
 - `assets/` 需要一并发布，install 时会将其安装到 skill 目录
 - `scripts/portfolio.sh` **必须随 skill 发布**（历史兼容）；v2.2.0 起 Command 1 内置 grep/awk 直接操作 portfolio.csv，不再依赖此脚本
@@ -66,7 +68,7 @@ rm -rf /tmp/stock-query
 
 ## 安全扫描修复规范（ClawHub OpenClaw Scanner）
 
-- **Credentials / 未声明环境变量**：`skill.yaml` 需在 `env:` 块中显式声明脚本使用的所有环境变量（如 `PORTFOLIO_FILE`），与 `config:` 分开维护
+- **Credentials / 未声明环境变量**：`skill.yaml` 需在 `env:` 块中显式声明脚本使用的所有环境变量，与 `config:` 分开维护；如无自定义环境变量则不需要 `env:` 块
 - **Purpose & Capability**：`description` 必须涵盖 skill 的全部能力（含文件管理等非只读操作），不能只描述主功能
 - **Instruction Scope**：SKILL.md 需有"权限与操作范围"章节，明确：① 每个权限的具体用途和限制，② 文件操作仅在用户显式指令下触发，③ 网络访问仅限声明的域名白名单
 - **Persistence & Privilege**：`permissions:` 条目加内联注释（`# 用途: ...`）说明各权限的限制范围
@@ -97,7 +99,7 @@ rm -rf /tmp/stock-query
 - **测试前执行**：`bash tests/install_local.sh`（同步当前开发内容到 openclaw 路径），修改后需重开 openclaw session 才能加载新 skill
 - **install_local.sh 覆盖范围**：同步到 `~/.openclaw/workspace/skills/stock-query/`；若 `~/.claude/skills/stock-query/` 存在也一并同步（含 `scripts/sq.sh`）
 - **L6 前置**：备份并替换 portfolio.csv（路径：`~/.openclaw/workspace/skills/stock-query/portfolio.csv`）
-- **PORTFOLIO_FILE 环境变量**不透传到 openclaw agent 执行环境，测试只能用默认路径
+- **portfolio.csv 路径**：固定在默认安装目录（openclaw 或 claude），不支持自定义环境变量；测试套件通过临时重命名文件模拟 NOT_FOUND（L6.7）
 - **东方财富 push2 API**：`push2.eastmoney.com` 直接 curl 无额外 headers 返回空响应（HTTP 52），L0 DS-5/DS-6 失败时优先排查 headers 而非网络连通性；主力腾讯源正常则不影响功能
 
 ## Skill 指令调优方法论

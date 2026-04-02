@@ -1,9 +1,13 @@
 ---
 name: stock-query
-version: 2.3.5
+version: 2.3.6
 description: >
-  查询全球主要市场股票实时行情：A 股、港股、美股，以及场内 ETF、场外基金、主要指数。
-  TRIGGER when: 用户要求查看股价、行情、净值、持仓盈亏、大盘指数时，直接调用，无需等待斜杠命令。
+  查询全球主要市场股票实时行情（A 股、港股、美股、ETF、场外基金、主要指数），支持批量查询与持仓市值计算。
+  同时支持在用户显式指令下管理本地 portfolio.csv 自选股/持仓文件（增/删/改/查）；文件仅含股票代码、名称、持仓、成本价，禁止存放账户凭证或密钥。
+  需要 shell 权限执行：curl（行情 API 请求）、iconv（GBK→UTF-8 转码）、grep/awk/mktemp（文件操作，仅限 portfolio.csv）。
+  文件访问：仅限 portfolio.csv 一个文件（固定在默认安装目录下查找，无需配置任何环境变量）；路径含 token/secret/.ssh 等凭证关键词时自动拒绝操作。
+  网络访问：仅限 qt.gtimg.cn、hq.sinajs.cn、push2.eastmoney.com、fundgz.1234567.com.cn、api.fund.eastmoney.com 五个行情数据源。
+  TRIGGER when: 用户要求查看股价、行情、净值、持仓盈亏、大盘指数，或管理自选股/持仓文件时，直接调用，无需等待斜杠命令。
   NOT for: 加密货币、期货、期权、外汇。
   用法：/stock-query AAPL 00700 601991
 user-invocable: true
@@ -18,9 +22,9 @@ allowed-tools:
 | 权限 | 声明用途 | 限制 |
 |------|---------|------|
 | `network` | `scripts/sq.sh` 内部调用行情 API | 仅限 `qt.gtimg.cn`、`hq.sinajs.cn`、`push2.eastmoney.com`、`fundgz.1234567.com.cn`、`api.fund.eastmoney.com` 五个数据源，不发送用户个人数据 |
-| `shell` | 执行 `scripts/sq.sh`、读写 `portfolio.csv` | 仅执行已声明操作；不执行任意命令 |
+| `shell` | 执行 `curl`、`iconv`、`grep`、`awk`、`mktemp` | 仅操作 `portfolio.csv`；不执行任意命令 |
 
-**文件访问：** 本 skill 仅在用户**显式指令**下读写 `portfolio.csv` 一个文件。路径由 `PORTFOLIO_FILE` 环境变量指定；未配置时在默认安装目录（`~/.openclaw/workspace/skills/stock-query/` 或 `~/.claude/skills/stock-query/`）下查找。
+**文件访问：** 本 skill 仅在用户**显式指令**下读写 `portfolio.csv` 一个文件，固定在默认安装目录（`~/.openclaw/workspace/skills/stock-query/` 或 `~/.claude/skills/stock-query/`）下查找，无需配置任何环境变量。
 
 **自动触发范围：** **文件操作（Command 1）不会自动触发**，仅在用户明确发出增/删/改/查 portfolio 指令时执行。
 
@@ -53,12 +57,12 @@ allowed-tools:
 
 version 输出：
 ```
-stock-query v2.3.5
+stock-query v2.3.6
 ```
 
 help 输出：
 ```
-stock-query v2.3.5 — 全球股票/ETF/基金/指数实时行情查询
+stock-query v2.3.6 — 全球股票/ETF/基金/指数实时行情查询
 
 用法：
   /stock-query <代码> [代码2 ...]   查询一个或多个标的
@@ -311,8 +315,6 @@ echo "$PFILE"
       ~/.openclaw/workspace/skills/stock-query/portfolio.csv
 
 2. 编辑文件，填入你的自选股和持仓信息。
-
-3. 或直接设置 PORTFOLIO_FILE 指向已有文件路径。
 ```
 
 **CSV 文件格式**（参考 `assets/portfolio.csv`）：

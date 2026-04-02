@@ -25,13 +25,6 @@ set -uo pipefail
 
 # --- 文件定位 ---
 find_portfolio() {
-  if [[ -n "${PORTFOLIO_FILE:-}" ]]; then
-    if [[ -f "${PORTFOLIO_FILE}" ]]; then
-      echo "${PORTFOLIO_FILE}"; return 0
-    else
-      echo "ERROR:FILE_NOT_FOUND" >&2; return 1
-    fi
-  fi
   local candidates=(
     "${HOME}/.openclaw/workspace/skills/stock-query/portfolio.csv"
     "${HOME}/.claude/skills/stock-query/portfolio.csv"

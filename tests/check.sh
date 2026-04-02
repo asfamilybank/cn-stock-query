@@ -395,18 +395,18 @@ section_L6() {
   fi
 
   # L6.7 NOT_FOUND 路径：sq pfile 在无文件时应返回 NOT_FOUND
-  local saved_pfile="${PORTFOLIO_FILE:-}"
-  local fake_dir; fake_dir=$(mktemp -d)
-  # shellcheck disable=SC2064
-  trap "rm -rf '$fake_dir'; rm -f '$pf'" RETURN
+  local bak="${pf}.l67bak"
+  mv "$pf" "$bak"
   local result
-  result=$(PORTFOLIO_FILE="${fake_dir}/noexist.csv" "$SQ" pfile)
+  result=$("$SQ" pfile)
+  mv "$bak" "$pf"
   if [[ "$result" == "NOT_FOUND" ]]; then
     pass "L6.7  sq pfile 文件不存在 → NOT_FOUND"
   else
     fail "L6.7  sq pfile 文件不存在 → 期望 NOT_FOUND，实为 '${result}'"
   fi
-  rm -rf "$fake_dir"
+  # shellcheck disable=SC2064
+  trap "rm -f '$pf'" RETURN
 }
 
 # ── 入口 ──────────────────────────────────────────────────────────────────────

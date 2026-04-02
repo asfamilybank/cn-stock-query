@@ -579,19 +579,16 @@ cmd_fund() {
 
 # ── sq pfile ──────────────────────────────────────────────────────────────────
 # 定位 portfolio.csv 文件路径，输出绝对路径或 NOT_FOUND
-# 查找优先级：$PORTFOLIO_FILE 环境变量 → openclaw 默认路径 → claude 默认路径
+# 查找顺序：openclaw 默认路径 → claude 默认路径
 
 cmd_pfile() {
-  local pfile="${PORTFOLIO_FILE:-}"
-
-  if [[ -z "$pfile" ]]; then
-    local _p
-    for _p in \
-      "$HOME/.openclaw/workspace/skills/stock-query/portfolio.csv" \
-      "$HOME/.claude/skills/stock-query/portfolio.csv"; do
-      [[ -f "$_p" ]] && pfile="$_p" && break
-    done
-  fi
+  local pfile=""
+  local _p
+  for _p in \
+    "$HOME/.openclaw/workspace/skills/stock-query/portfolio.csv" \
+    "$HOME/.claude/skills/stock-query/portfolio.csv"; do
+    [[ -f "$_p" ]] && pfile="$_p" && break
+  done
 
   # 无论来源，文件不存在均返回 NOT_FOUND
   if [[ -z "$pfile" || ! -f "$pfile" ]]; then
