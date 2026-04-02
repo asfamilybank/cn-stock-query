@@ -1,6 +1,6 @@
 ---
 name: stock-query
-version: 2.3.4
+version: 2.3.5
 description: >
   查询全球主要市场股票实时行情：A 股、港股、美股，以及场内 ETF、场外基金、主要指数。
   TRIGGER when: 用户要求查看股价、行情、净值、持仓盈亏、大盘指数时，直接调用，无需等待斜杠命令。
@@ -53,12 +53,12 @@ allowed-tools:
 
 version 输出：
 ```
-stock-query v2.3.4
+stock-query v2.3.5
 ```
 
 help 输出：
 ```
-stock-query v2.3.4 — 全球股票/ETF/基金/指数实时行情查询
+stock-query v2.3.5 — 全球股票/ETF/基金/指数实时行情查询
 
 用法：
   /stock-query <代码> [代码2 ...]   查询一个或多个标的
