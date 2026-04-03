@@ -21,13 +21,14 @@
 
 **只有一个 SKILL.md，直接修改即可。** 修改后运行 `bash tests/install_local.sh` 同步到 skill 目录。
 
-**新增脚本时须同步三处**：`tests/install_local.sh`（本地开发）、`install.sh`（用户安装）、CLAUDE.md 发布流程命令；三处缺一都会导致用户或开发环境功能异常。
+**新增脚本时须同步五处**：`tests/install_local.sh`（本地开发）、`install.sh`（用户安装）、CLAUDE.md 发布流程命令、`skill.yaml requires.bins`（新增依赖）、SKILL.md `前置依赖` 表格 + `静默执行原则`（声明脚本输出性质）；漏任一处都会导致功能异常或 ClawHub 扫描警告。
 
 ## 版本与发布
 
-- **发布顺序**：先跑 `bash tests/datasource_check.sh && bash tests/check.sh` 全过，再**更新 CHANGELOG.md**，再 bump 版本，再发 ClawHub；禁止在测试前 bump
-- 版本号需在三处同步维护：`skill.yaml`、`SKILL.md`（frontmatter）、`clawhub.json`（发布时 ClawHub 从中获取 tagline、description、category、tags 等元数据）
-- 注意：`SKILL.md` Step 0 正文含硬编码版本字符串（`stock-query vX.X.X`），bump 时需用 `replace_all` 一并替换
+- **发布顺序**：先跑 `bash tests/datasource_check.sh && bash tests/check.sh` 全过，再**完整更新 CHANGELOG.md**，再 bump 版本（`bash bump.sh release`），再发 ClawHub；禁止在测试前 bump，禁止在 CHANGELOG 未完整时 commit
+- **版本管理**：使用 `bump.sh` 统一管理（自动同步四处）；预发布格式 `X.Y.Z-alpha.N`（`bash bump.sh minor alpha` 开启，`bash bump.sh alpha` 递增，`bash bump.sh release` 发正式版）
+- 版本号需在三处同步维护：`skill.yaml`、`SKILL.md`（frontmatter）、`clawhub.json`（发布时 ClawHub 从中获取 tagline、description、category、tags 等元数据）；`bump.sh` 已自动处理四处（含 SKILL.md 正文）
+- 注意：`SKILL.md` Step 0 正文含硬编码版本字符串（`stock-query vX.X.X`），`bump.sh` 已自动处理；手动 bump 时需用 `replace_all` 一并替换
 - **ClawHub 发布**：只在 openclaw skill（`skill.yaml`、根目录 `SKILL.md`）有变化时执行；description/触发条件改动发 patch，功能改动发 minor/major；`claude/` 目录的改动不需要触发 ClawHub 发布
 - **ClawHub 安全扫描**：扫描器检查以下类别：Purpose & Capability（功能与描述一致性）、Instruction Scope（操作边界明确性）、Credentials（环境变量声明完整性）、Persistence & Privilege（权限组合说明）。修改 skill.yaml/SKILL.md 后如触发扫描警告，参见下方"安全扫描修复规范"。
 
