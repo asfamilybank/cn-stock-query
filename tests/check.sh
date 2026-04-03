@@ -65,6 +65,12 @@ section_L1() {
   else
     fail "L1.4  sq 无子命令未输出 usage"
   fi
+
+  if { "$SQ" hist 2>&1 || true; } | grep -q 'usage'; then
+    pass "L1.5  sq hist 无参数输出 usage"
+  else
+    fail "L1.5  sq hist 无参数未输出 usage"
+  fi
 }
 
 # ── L2: 市场识别 + 字段完整性（需要网络）────────────────────────────────────
@@ -409,6 +415,95 @@ section_L6() {
   trap "rm -f '$pf'" RETURN
 }
 
+# ── L7: sq hist 历史K线（需要网络）──────────────────────────────────────────
+# A股/港股 → 腾讯 web.ifzq.gtimg.cn；美股 → 东方财富 push2his.eastmoney.com
+
+# assert_hist_jq LABEL JQ_EXPR code [sq hist 额外参数...]
+assert_hist_jq() {
+  local label="$1" jq_expr="$2" code="$3"
+  shift 3
+  local out
+  out=$("$SQ" hist "$code" "$@" 2>/dev/null) || true
+  if printf '%s' "$out" | jq -e "$jq_expr" &>/dev/null; then
+    pass "$label"
+  else
+    fail "$label"
+    printf '  jq:  %s\n' "$jq_expr"
+    printf '  out: %s\n' "$(printf '%s' "$out" | jq -c '.' 2>/dev/null || printf '%s' "$out")"
+  fi
+}
+
+section_L7() {
+  printf '\n=== L7: sq hist 历史K线 ===\n'
+
+  # A股 日K：error=null，市场/周期正确，klines 非空，首条有 date 和 close
+  assert_hist_jq "L7.1  A股 600519 日K 近5条 → 有效对象" \
+    '.error == null and .market == "A股" and .period == "day" and (.klines | length) > 0 and .klines[0].date != null and .klines[0].close != null' \
+    "600519" --count 5
+
+  # A股 日期范围：klines 中所有 date 都在 [start, end] 内
+  assert_hist_jq "L7.2  A股 600519 日期范围 2026-01-02~2026-01-31 → 所有date在范围内" \
+    '.error == null and (.klines | length) > 0 and all(.klines[]; .date >= "2026-01-02" and .date <= "2026-01-31")' \
+    "600519" --start 2026-01-02 --end 2026-01-31
+
+  # 港股 日K
+  assert_hist_jq "L7.3  港股 00700 日K → market=港股 klines非空" \
+    '.error == null and .market == "港股" and (.klines | length) > 0' \
+    "00700" --count 5
+
+  # 周K
+  assert_hist_jq "L7.4  A股 600519 周K → period=week klines非空" \
+    '.error == null and .period == "week" and (.klines | length) > 0' \
+    "600519" --period week --count 5
+
+  # 月K
+  assert_hist_jq "L7.5  A股 600519 月K → period=month klines非空" \
+    '.error == null and .period == "month" and (.klines | length) > 0' \
+    "600519" --period month --count 5
+
+  # 复权参数透传
+  assert_hist_jq "L7.6  A股 600519 不复权 → fq=none" \
+    '.error == null and .fq == "none"' \
+    "600519" --count 3 --fq none
+
+  # 场外基金 → error 非 null（不支持历史查询）
+  assert_hist_jq "L7.7  场外基金 014978 → error 非null（基金不支持）" \
+    '.error != null' \
+    "014978"
+
+  # 无效代码 → error 非 null
+  assert_hist_jq "L7.8  无效代码 XYZNOTEXIST → error 非null" \
+    '.error != null' \
+    "XYZNOTEXIST"
+
+  # klines 涨跌幅计算：第2条起 change_pct 非null（第1条为null因无前收盘）
+  assert_hist_jq "L7.9  A股 600519 日K 近3条 → 第2条 change_pct 非null" \
+    '.error == null and (.klines | length) >= 2 and .klines[1].change_pct != null' \
+    "600519" --count 3
+
+  # klines 首条涨跌幅为 null（A股/港股无前收盘）
+  assert_hist_jq "L7.10 A股 600519 日K 近3条 → 首条 change_pct=null" \
+    '.error == null and .klines[0].change_pct == null' \
+    "600519" --count 3
+
+  # 美股 hist（push2his.eastmoney.com）：网络不可达时 SKIP
+  # push2his 与 push2 同样可能返回 HTTP 52（取决于网络环境），此测试仅在可达时断言
+  local push2his_ok=false
+  if curl -s -m 5 -H "Referer: https://finance.eastmoney.com" \
+      "https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=105.AAPL&fields1=f1&fields2=f51&klt=101&fqt=1&beg=0&end=20500101&lmt=1" \
+      2>/dev/null | grep -q '"data"'; then
+    push2his_ok=true
+  fi
+
+  if [[ "$push2his_ok" == "true" ]]; then
+    assert_hist_jq "L7.11 美股 AAPL 日K → error=null market=美股 klines非空" \
+      '.error == null and .market == "美股" and (.klines | length) > 0' \
+      "AAPL" --count 5
+  else
+    skip "L7.11 美股 AAPL 日K（push2his.eastmoney.com 不可达，跳过）"
+  fi
+}
+
 # ── 入口 ──────────────────────────────────────────────────────────────────────
 
 check_deps
@@ -429,12 +524,13 @@ section_L1
 section_L6   # 无需网络，与 L1 一起先跑
 
 if [[ "$SKIP_NETWORK" == "true" ]]; then
-  printf '\n=== L2/L3/L4/L5: 已跳过（--skip-network）===\n'
-  SKIP=$((SKIP + 13 + 5 + 5 + 4))
+  printf '\n=== L2/L3/L4/L5/L7: 已跳过（--skip-network）===\n'
+  SKIP=$((SKIP + 13 + 5 + 5 + 4 + 11))
 else
   section_L2
   section_L3
   section_L4
+  section_L7
   if [[ "$SKIP_AGENT" == "true" ]]; then
     printf '\n=== L5: 已跳过（--skip-agent 或 openclaw 不可用）===\n'
     SKIP=$((SKIP + 4))

@@ -483,6 +483,25 @@ openclaw agent -m "查我的持仓" --session-id "sq-tc-6.4-$(date +%s)" --json 
 
 ---
 
+## §5.5 历史K线（L7，Shell 自动）
+
+L7 由 `tests/check.sh` 自动执行，无需 agent：
+
+| check.sh 用例 | 内容 |
+|---|---|
+| L1.5 | sq hist 无参数 → usage |
+| L7.1 | A股 600519 日K 近5条 → error=null，market=A股，klines非空，首条有date/close |
+| L7.2 | A股 600519 日期范围 2026-01-02~2026-01-31 → 所有date在范围内 |
+| L7.3 | 港股 00700 日K 近5条 → market=港股，klines非空 |
+| L7.4 | A股 600519 周K → period=week，klines非空 |
+| L7.5 | A股 600519 月K → period=month，klines非空 |
+| L7.6 | A股 600519 不复权 --fq none → fq=none |
+| L7.7 | 场外基金 014978 → error非null（不支持历史查询） |
+| L7.8 | 无效代码 XYZNOTEXIST → error非null |
+| L7.9 | A股 600519 近3条 → 第2条 change_pct 非null（涨跌幅计算正确） |
+
+---
+
 ## §6 Command 1 CRUD（L6，Agent）
 
 > ⚠️ 执行前准备测试文件（使用默认路径，`PORTFOLIO_FILE` 环境变量无法透传到 agent）：

@@ -35,6 +35,7 @@ TIMEOUT=8
 TODAY=$(date +%Y-%m-%d)
 _RESULTS_DIR=$(mktemp -d)
 trap 'rm -rf "$_RESULTS_DIR"' EXIT INT TERM
+_FMT_SH="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)/fmt.sh"
 
 # ── JSON 工具 ──────────────────────────────────────────────────────────────────
 
@@ -42,7 +43,20 @@ _esc() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
 jstr() { [[ -z "${1:-}" ]] && printf 'null' || printf '"%s"' "$(_esc "$1")"; }
 jnum() {
   local v="${1:-}"
-  [[ -z "$v" || "$v" == "-" || "$v" == "--" ]] && printf 'null' || printf '%s' "$v"
+  [[ -z "$v" || "$v" == "-" || "$v" == "--" ]] && { printf 'null'; return; }
+  # 保证 JSON 合法：bc 可能输出 .65 或 -.65，需补前导零
+  [[ "$v" =~ ^\. ]]  && v="0${v}"
+  [[ "$v" =~ ^-\. ]] && v="-0${v#-}"
+  printf '%s' "$v"
+}
+
+# 解码 JSON Unicode 转义序列 \uXXXX → UTF-8（腾讯 API 返回此格式）
+_ujson() {
+  local s="$1"
+  [[ "$s" != *'\u'* ]] && { printf '%s' "$s"; return; }
+  command -v python3 &>/dev/null || { printf '%s' "$s"; return; }
+  printf '"%s"' "$s" | python3 -c "import json,sys; print(json.load(sys.stdin), end='')" 2>/dev/null \
+    || printf '%s' "$s"
 }
 jbool() { [[ "${1:-false}" == "true" ]] && printf 'true' || printf 'false'; }
 
@@ -289,6 +303,31 @@ parse_sina() {
     "$(jstr "${date} ${time}")"
   printf '"is_estimate":false,"nav_date":null,"is_qdii":false,"error":null}'
   return 0
+}
+
+# ── 腾讯历史K线 API（A股/港股）────────────────────────────────────────────────
+# sym: sh600519 / sz000001 / hk00700 等腾讯格式
+# period: day | week | month
+# adjust: qfq | hfq | (empty=不复权)
+# count: 返回条数；start/end: YYYY-MM-DD 或空
+
+tencent_hist_fetch() {
+  local sym="$1" period="$2" adjust="$3" count="$4" start="${5:-}" end="${6:-}"
+  curl -s -m "$TIMEOUT" \
+    "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=${sym},${period},${start},${end},${count},${adjust}" \
+    | iconv -f GBK -t UTF-8 2>/dev/null
+}
+
+# ── 东方财富历史K线 API（美股）────────────────────────────────────────────────
+# klt: 101=日K 102=周K 103=月K
+# fqt: 0=不复权 1=前复权 2=后复权
+# lmt: 返回条数上限；beg/end: YYYYMMDD（0=不限）
+
+em_hist_fetch() {
+  local secid="$1" klt="$2" fqt="$3" lmt="$4" beg="${5:-0}" end="${6:-20500101}"
+  curl -s -m "$TIMEOUT" \
+    -H "Referer: https://finance.eastmoney.com" \
+    "https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=${secid}&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61&klt=${klt}&fqt=${fqt}&beg=${beg}&end=${end}&lmt=${lmt}"
 }
 
 # ── 东方财富 API（港股/美股备用）─────────────────────────────────────────────
@@ -577,6 +616,231 @@ cmd_fund() {
   printf ']\n'
 }
 
+# ── sq hist ───────────────────────────────────────────────────────────────────
+# 查询个股历史K线，输出 JSON 对象
+# 用法: sq hist <code> [--period day|week|month] [--count N]
+#                      [--start YYYY-MM-DD] [--end YYYY-MM-DD]
+#                      [--fq pre|post|none]
+# 数据源: A股/港股 → 腾讯 web.ifzq.gtimg.cn；美股 → 东方财富 push2his.eastmoney.com
+# 输出字段: code name market period fq klines[] error
+# klines 字段: date open close high low volume change_pct change
+#   A股/港股额外字段 amount=null；美股额外字段 amplitude turnover
+
+cmd_hist() {
+  [[ $# -eq 0 ]] && {
+    printf 'usage: sq hist <code> [--period day|week|month] [--count N] [--start YYYY-MM-DD] [--end YYYY-MM-DD] [--fq pre|post|none]\n' >&2
+    exit 1
+  }
+
+  local code="" klt="101" fqt="1" lmt="30" beg="0" end="20500101"
+  local period_name="day" fq_name="pre"
+  local has_date_range=false
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --period|-p)
+        case "${2:-}" in
+          day|d)   klt="101"; period_name="day"   ;;
+          week|w)  klt="102"; period_name="week"  ;;
+          month|m) klt="103"; period_name="month" ;;
+          *) printf 'sq hist: unknown period "%s"\n' "${2:-}" >&2; exit 1 ;;
+        esac
+        shift 2 ;;
+      --count|-n)
+        [[ -z "${2:-}" ]] && { printf 'sq hist: --count requires a value\n' >&2; exit 1; }
+        lmt="$2"; shift 2 ;;
+      --start)
+        [[ -z "${2:-}" ]] && { printf 'sq hist: --start requires YYYY-MM-DD\n' >&2; exit 1; }
+        beg="${2//-/}"; has_date_range=true; shift 2 ;;
+      --end)
+        [[ -z "${2:-}" ]] && { printf 'sq hist: --end requires YYYY-MM-DD\n' >&2; exit 1; }
+        end="${2//-/}"; has_date_range=true; shift 2 ;;
+      --fq)
+        case "${2:-}" in
+          pre)  fqt="1"; fq_name="pre"  ;;
+          post) fqt="2"; fq_name="post" ;;
+          none) fqt="0"; fq_name="none" ;;
+          *) printf 'sq hist: unknown fq "%s"\n' "${2:-}" >&2; exit 1 ;;
+        esac
+        shift 2 ;;
+      -*) printf 'sq hist: unknown option "%s"\n' "$1" >&2; exit 1 ;;
+      *)
+        [[ -n "$code" ]] && { printf 'sq hist: unexpected argument "%s"\n' "$1" >&2; exit 1; }
+        code="$1"; shift ;;
+    esac
+  done
+
+  [[ -z "$code" ]] && { printf 'sq hist: code is required\n' >&2; exit 1; }
+
+  # 日期范围模式：不按 count 截断
+  [[ "$has_date_range" == true ]] && lmt="500"
+
+  # 分类代码
+  local cls; cls=$(classify_code "$code")
+  local market sym
+  if [[ "$cls" == error:* ]]; then
+    printf '{"code":%s,"name":null,"market":null,"period":%s,"fq":%s,"klines":[],"error":"无法识别代码（A股6位/港股≤5位/美股ticker）"}\n' \
+      "$(jstr "$code")" "$(jstr "$period_name")" "$(jstr "$fq_name")"
+    return 0
+  elif [[ "$cls" == probe:* ]]; then
+    local rest="${cls#probe:}"
+    market="${rest%%:*}"
+    rest="${rest#*:}"; sym="${rest%%:*}"
+  else
+    local rest="${cls#*:}"
+    market="${cls%%:*}"; sym="${rest%%:*}"
+  fi
+
+  case "$market" in
+    fund)
+      printf '{"code":%s,"name":null,"market":"基金","period":%s,"fq":%s,"klines":[],"error":"场外基金暂不支持历史数据查询"}\n' \
+        "$(jstr "$code")" "$(jstr "$period_name")" "$(jstr "$fq_name")"
+      return 0 ;;
+    error|*)
+      if [[ "$market" != "sh" && "$market" != "sz" && "$market" != "hk" && "$market" != "us" ]]; then
+        printf '{"code":%s,"name":null,"market":null,"period":%s,"fq":%s,"klines":[],"error":"无法识别代码"}\n' \
+          "$(jstr "$code")" "$(jstr "$period_name")" "$(jstr "$fq_name")"
+        return 0
+      fi ;;
+  esac
+
+  local is_probe=false
+  [[ "$cls" == probe:* ]] && is_probe=true
+
+  local kf; kf=$(mktemp)
+  printf '[' > "$kf"
+  local first=true name="" market_name=""
+
+  if [[ "$market" == "sh" || "$market" == "sz" || "$market" == "hk" ]]; then
+    # ── A股/港股：腾讯历史K线 ─────────────────────────────────────────────────
+    [[ "$market" == "hk" ]] && market_name="港股" || market_name="A股"
+    local tsym="${market}${sym}"
+
+    # 复权参数：港股不支持复权，强制 none（fqt 参数仍记录用户意图但不传 API）
+    local tadjust
+    if [[ "$market" == "hk" ]]; then
+      tadjust=""
+    else
+      case "$fqt" in
+        1) tadjust="qfq" ;;
+        2) tadjust="hfq" ;;
+        0) tadjust=""    ;;
+        *) tadjust="qfq" ;;
+      esac
+    fi
+
+    # 日期转换：YYYYMMDD → YYYY-MM-DD（腾讯 API 用 YYYY-MM-DD）
+    local tstart="" tend=""
+    if [[ "$has_date_range" == true ]]; then
+      [[ "$beg" != "0" ]] && tstart="${beg:0:4}-${beg:4:2}-${beg:6:2}"
+      [[ "$end" != "20500101" ]] && tend="${end:0:4}-${end:4:2}-${end:6:2}"
+    fi
+
+    local resp; resp=$(tencent_hist_fetch "$tsym" "$period_name" "$tadjust" "$lmt" "$tstart" "$tend")
+
+    if [[ -z "$resp" || "$resp" == *'"code":1'* || "$resp" == *'"code":-'* ]]; then
+      printf ']' >> "$kf"
+      printf '{"code":%s,"name":null,"market":%s,"period":%s,"fq":%s,"klines":[],"error":"历史数据不可用，请稍后重试"}\n' \
+        "$(jstr "$code")" "$(jstr "$market_name")" "$(jstr "$period_name")" "$(jstr "$fq_name")"
+      rm -f "$kf"; return 0
+    fi
+
+    # 提取股票名称（qt 字段第二个元素，可能是 \uXXXX 格式，需解码）
+    local _raw_name
+    _raw_name=$(printf '%s' "$resp" | grep -o '"qt":{"[^"]*":\["[^"]*","[^"]*"' | head -1 | cut -d'"' -f8)
+    name=$(_ujson "$_raw_name")
+
+    # 腾讯 kline row 格式：["YYYY-MM-DD","open","close","high","low","vol"]
+    # 港股可能有第7列 object（除权信息），只取前6字段
+    local prev_close=""
+    while IFS= read -r match; do
+      match="${match//\"/}"   # 去引号 → YYYY-MM-DD,open,close,high,low,vol
+      local date open close high low volume
+      date=$(   printf '%s' "$match" | cut -d',' -f1)
+      open=$(   printf '%s' "$match" | cut -d',' -f2)
+      close=$(  printf '%s' "$match" | cut -d',' -f3)
+      high=$(   printf '%s' "$match" | cut -d',' -f4)
+      low=$(    printf '%s' "$match" | cut -d',' -f5)
+      volume=$( printf '%s' "$match" | cut -d',' -f6)
+
+      # 计算涨跌额/幅（第一条无前收盘时为 null）
+      local change="" change_pct=""
+      if [[ -n "$prev_close" && -n "$close" ]] && command -v bc &>/dev/null; then
+        change=$(echo "scale=4; $close - $prev_close" | bc 2>/dev/null || echo "")
+        [[ -n "$change" ]] && \
+          change_pct=$(echo "scale=4; $change / $prev_close * 100" | bc 2>/dev/null || echo "")
+      fi
+      prev_close="$close"
+
+      [[ "$first" == true ]] && first=false || printf ',' >> "$kf"
+      printf '{"date":%s,"open":%s,"close":%s,"high":%s,"low":%s,"volume":%s,"amount":null,"change_pct":%s,"change":%s,"amplitude":null,"turnover":null}' \
+        "$(jstr "$date")" "$(jnum "$open")" "$(jnum "$close")" "$(jnum "$high")" "$(jnum "$low")" \
+        "$(jnum "$volume")" "$(jnum "$change_pct")" "$(jnum "$change")" >> "$kf"
+    done < <(printf '%s' "$resp" | grep -oE '"[0-9]{4}-[0-9]{2}-[0-9]{2}","[0-9.]+","[0-9.]+","[0-9.]+","[0-9.]+","[0-9.]+"')
+
+  else
+    # ── 美股：东方财富历史K线 ─────────────────────────────────────────────────
+    market_name="美股"
+    local secid="105.${sym}"
+    local resp; resp=$(em_hist_fetch "$secid" "$klt" "$fqt" "$lmt" "$beg" "$end")
+    # NASDAQ(105) 无数据时回退 NYSE(106)
+    if [[ -z "$resp" || "$resp" == *'"data":null'* ]]; then
+      secid="106.${sym}"
+      resp=$(em_hist_fetch "$secid" "$klt" "$fqt" "$lmt" "$beg" "$end")
+    fi
+
+    if [[ -z "$resp" || "$resp" == *'"data":null'* ]]; then
+      printf ']' >> "$kf"
+      printf '{"code":%s,"name":null,"market":"美股","period":%s,"fq":%s,"klines":[],"error":"历史数据不可用，请稍后重试"}\n' \
+        "$(jstr "$code")" "$(jstr "$period_name")" "$(jstr "$fq_name")"
+      rm -f "$kf"; return 0
+    fi
+
+    name=$(printf '%s' "$resp" | grep -o '"name":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+    # 东方财富 kline：带引号的 CSV 字符串 "date,open,close,high,low,vol,amount,amp,chg%,chg,turnover"
+    while IFS= read -r ks; do
+      [[ -z "$ks" ]] && continue
+      ks="${ks//\"/}"
+
+      local date open close high low volume amount amplitude change_pct change turnover
+      date=$(       printf '%s' "$ks" | cut -d',' -f1)
+      open=$(       printf '%s' "$ks" | cut -d',' -f2)
+      close=$(      printf '%s' "$ks" | cut -d',' -f3)
+      high=$(       printf '%s' "$ks" | cut -d',' -f4)
+      low=$(        printf '%s' "$ks" | cut -d',' -f5)
+      volume=$(     printf '%s' "$ks" | cut -d',' -f6)
+      amount=$(     printf '%s' "$ks" | cut -d',' -f7)
+      amplitude=$(  printf '%s' "$ks" | cut -d',' -f8)
+      change_pct=$( printf '%s' "$ks" | cut -d',' -f9)
+      change=$(     printf '%s' "$ks" | cut -d',' -f10)
+      turnover=$(   printf '%s' "$ks" | cut -d',' -f11)
+
+      [[ "$first" == true ]] && first=false || printf ',' >> "$kf"
+      printf '{"date":%s,"open":%s,"close":%s,"high":%s,"low":%s,"volume":%s,"amount":%s,"change_pct":%s,"change":%s,"amplitude":%s,"turnover":%s}' \
+        "$(jstr "$date")" "$(jnum "$open")" "$(jnum "$close")" "$(jnum "$high")" "$(jnum "$low")" \
+        "$(jnum "$volume")" "$(jnum "$amount")" "$(jnum "$change_pct")" "$(jnum "$change")" \
+        "$(jnum "$amplitude")" "$(jnum "$turnover")" >> "$kf"
+    done < <(printf '%s' "$resp" | grep -oE '"[0-9]{4}-[0-9]{2}-[0-9]{2},[^"]+"')
+  fi
+
+  printf ']' >> "$kf"
+
+  # probe 代码（0开头6位数字）若 klines 为空 → 实为场外基金，不支持历史查询
+  if [[ "$is_probe" == "true" && "$(cat "$kf")" == "[]" ]]; then
+    rm -f "$kf"
+    printf '{"code":%s,"name":null,"market":"基金","period":%s,"fq":%s,"klines":[],"error":"场外基金暂不支持历史数据查询"}\n' \
+      "$(jstr "$code")" "$(jstr "$period_name")" "$(jstr "$fq_name")"
+    return 0
+  fi
+
+  printf '{"code":%s,"name":%s,"market":%s,"period":%s,"fq":%s,"klines":' \
+    "$(jstr "$code")" "$(jstr "$name")" "$(jstr "$market_name")" "$(jstr "$period_name")" "$(jstr "$fq_name")"
+  cat "$kf"
+  printf ',"error":null}\n'
+  rm -f "$kf"
+}
+
 # ── sq pfile ──────────────────────────────────────────────────────────────────
 # 定位 portfolio.csv 文件路径，输出绝对路径或 NOT_FOUND
 # 查找顺序：openclaw 默认路径 → claude 默认路径
@@ -600,18 +864,45 @@ cmd_pfile() {
 }
 
 # ── 入口 ──────────────────────────────────────────────────────────────────────
+# get/fund/hist 支持 --format <fmt>（table|detail|json）
+# 存在时，输出通过 fmt.sh 格式化；不存在时，行为与之前完全相同（输出原始 JSON）
+
+_extract_fmt() {
+  _FMT_ARG=""; _REST_ARGS=()
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --format|-f) _FMT_ARG="${2:-table}"; shift 2 ;;
+      *) _REST_ARGS+=("$1"); shift ;;
+    esac
+  done
+}
 
 subcmd="${1:-}"
 shift 2>/dev/null || true
 
 case "$subcmd" in
-  get)   cmd_get   "$@" ;;
-  fund)  cmd_fund  "$@" ;;
+  get|fund|hist)
+    _extract_fmt "$@"
+    if [[ -n "$_FMT_ARG" && -f "$_FMT_SH" ]]; then
+      case "$subcmd" in
+        get)  cmd_get  "${_REST_ARGS[@]+"${_REST_ARGS[@]}"}" ;;
+        fund) cmd_fund "${_REST_ARGS[@]+"${_REST_ARGS[@]}"}" ;;
+        hist) cmd_hist "${_REST_ARGS[@]+"${_REST_ARGS[@]}"}" ;;
+      esac | bash "$_FMT_SH" --format "$_FMT_ARG"
+    else
+      case "$subcmd" in
+        get)  cmd_get  "${_REST_ARGS[@]+"${_REST_ARGS[@]}"}" ;;
+        fund) cmd_fund "${_REST_ARGS[@]+"${_REST_ARGS[@]}"}" ;;
+        hist) cmd_hist "${_REST_ARGS[@]+"${_REST_ARGS[@]}"}" ;;
+      esac
+    fi
+    ;;
   pfile) cmd_pfile "$@" ;;
   *)
-    printf 'usage:\n  sq get   <code> [code...]   查询实时行情，输出 JSON\n' >&2
-    printf '  sq fund  <code> [code...]   查询场外基金净值，输出 JSON\n' >&2
-    printf '  sq pfile                    定位 portfolio.csv 路径\n' >&2
+    printf 'usage:\n  sq get   <code> [code...] [--format table|detail|json]   查询实时行情\n' >&2
+    printf '  sq fund  <code> [code...] [--format table|detail|json]   查询场外基金净值\n' >&2
+    printf '  sq hist  <code> [opts]    [--format table|json]          查询历史K线\n' >&2
+    printf '  sq pfile                                                  定位 portfolio.csv 路径\n' >&2
     exit 1
     ;;
 esac

@@ -51,7 +51,7 @@ rm -rf /tmp/stock-query
 
 | 路径 | 用途 |
 |------|------|
-| `scripts/sq.sh` | 行情查询 CLI，**随 skill 发布**，`sq get`/`sq fund`/`sq pfile` 三个子命令 |
+| `scripts/sq.sh` | 行情查询 CLI，**随 skill 发布**，`sq get`/`sq fund`/`sq hist`/`sq pfile` 四个子命令 |
 | `scripts/portfolio.sh` | **随 skill 发布**（历史兼容）；v2.2.0 起 Command 1 改为内联 bash，不再依赖此脚本 |
 | `scripts/query_price.sh` | 批量查询独立脚本，**不随 skill 发布**（见上），供用户从 GitHub 获取直接使用 |
 | `scripts/monitor.sh` | 接口监控内部工具，不参与发布 |
@@ -80,6 +80,8 @@ rm -rf /tmp/stock-query
 - **新浪财经**（`hq.sinajs.cn`）— A 股备用，GBK 编码，`,` 分隔字段，需 `Referer` header
 - 两者响应均需 `| iconv -f GBK -t UTF-8` 转码
 - **东方财富行情**（`push2.eastmoney.com`）— 港股/美股备用，UTF-8，JSON 响应，无需 iconv；港股 `secid=116.xxxxx`；美股先试 `secid=105.TICKER`（NASDAQ），null 时试 `106.TICKER`（NYSE）；`fltt=2` 参数直接返回浮点值，f43=最新价 f58=名称 f169=涨跌额 f170=涨跌幅%
+- **腾讯历史K线**（`web.ifzq.gtimg.cn`）— A股/港股历史K线主源；URL 参数格式：`sym,period,start,end,count,adjust`（period=day/week/month，adjust=qfq/hfq/空，start/end 为 YYYY-MM-DD 或空）；响应 key：A股+qfq→`qfqday`，港股固定→`day`；港股不支持复权（adjust 强制空，fq 字段应改为 none）；股票名称以 `\uXXXX` JSON escape 格式返回，需 `_ujson` 解码
+- **东方财富历史K线**（`push2his.eastmoney.com`）— 美股历史K线；直接 curl 返回空响应（HTTP 52，同 push2.eastmoney.com），L7.11 在开发环境会 SKIP；secid 格式：A股 `1./0.`，港股 `116.`，美股 `105.`(NASDAQ)→`106.`(NYSE)
 
 腾讯 API 前缀：`sh`/`sz`(A股) · `hk`(港股5位) · `us`+ticker(美股) · `us.XXX`(美股指数)
 腾讯字段索引（`~` 分隔）：[1]名称 [3]最新价 [4]昨收 [30]日期时间 [31]涨跌额 [32]涨跌幅% [33]最高 [34]最低
@@ -101,10 +103,11 @@ rm -rf /tmp/stock-query
 - **L6 前置**：备份并替换 portfolio.csv（路径：`~/.openclaw/workspace/skills/stock-query/portfolio.csv`）
 - **portfolio.csv 路径**：固定在默认安装目录（openclaw 或 claude），不支持自定义环境变量；测试套件通过临时重命名文件模拟 NOT_FOUND（L6.7）
 - **东方财富 push2 API**：`push2.eastmoney.com` 直接 curl 无额外 headers 返回空响应（HTTP 52），L0 DS-5/DS-6 失败时优先排查 headers 而非网络连通性；主力腾讯源正常则不影响功能
+- **check.sh `--skip-network` SKIP 计数**：新增网络测试层时须同步更新 `SKIP=$((SKIP + ...))` 那行数字；当前各层项数：L2=13, L3=5, L4=5, L5=4, L7=11
 
 ## Skill 指令调优方法论
 
 - **文字禁令效果有限**：`禁止做X` 类指令对持续性行为问题效果不稳定
 - **有效方案**：改为伪代码分步逻辑（`Step A: ... Step B: ... Step D: 不得跳过`），明确执行顺序比措辞强调更有效——TC-5.4 持仓=0 条目缺失问题经 4 次迭代，伪代码方案最终生效
 - **版本分级**：指令调优 → patch；功能新增/流程变更 → minor/major
-- **Command 编号**：Command 1 = Portfolio 文件管理（优先路由），Command 2 = 行情查询（默认 fallback），无 Command 0/3
+- **Command 编号**：Command 1 = Portfolio 文件管理（优先路由），Command 3 = 历史行情查询（历史/K线关键词触发），Command 2 = 行情查询（默认 fallback），无 Command 0

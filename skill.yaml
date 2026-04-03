@@ -6,7 +6,7 @@ description: >
   同时支持在用户显式指令下通过内联 bash 命令管理本地 portfolio.csv 自选股/持仓文件（增/删/改/查），文件仅含股票代码、名称、持仓、成本价，禁止存放账户凭证或密钥。
   需要：curl（行情 API 请求）、iconv（GBK→UTF-8 转码）。
   文件访问：仅限 portfolio.csv，固定在默认安装目录（~/.openclaw/workspace/skills/stock-query/ 或 ~/.claude/skills/stock-query/）下查找，不访问其他系统文件。
-  网络访问：仅限 qt.gtimg.cn、hq.sinajs.cn、push2.eastmoney.com、fundgz.1234567.com.cn、api.fund.eastmoney.com 五个行情数据源。
+  网络访问：仅限 qt.gtimg.cn、hq.sinajs.cn、push2.eastmoney.com、web.ifzq.gtimg.cn、push2his.eastmoney.com、fundgz.1234567.com.cn、api.fund.eastmoney.com 七个行情数据源。
   Use when: 用户提到"查股价""查净值""行情""最新价""持仓市值""实时价格""大盘""指数""港股""美股"等。
   NOT for: 加密货币、期货、期权、外汇。
 emoji: "📈"
@@ -17,7 +17,7 @@ license: MIT
 repository: https://github.com/asfamilybank/stock-query
 
 permissions:
-  - network  # 用途：curl 调用行情 API（仅限 qt.gtimg.cn / hq.sinajs.cn / push2.eastmoney.com / fundgz.1234567.com.cn / api.fund.eastmoney.com）
+  - network  # 用途：curl 调用行情 API（仅限 qt.gtimg.cn / hq.sinajs.cn / push2.eastmoney.com / web.ifzq.gtimg.cn / push2his.eastmoney.com / fundgz.1234567.com.cn / api.fund.eastmoney.com）
   - shell    # 用途：执行 curl、iconv 转码、grep/awk 文件操作（仅操作 portfolio.csv，不执行任意命令）
 
 entryPoint:
