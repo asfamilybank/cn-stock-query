@@ -4,9 +4,16 @@
 
 ### Added
 - 历史K线表格新增 MA5/MA10/MA20/MA60 均线列
+- 新增 `bump.sh` 版本管理工具，支持 semver 预发布全流程（alpha 递增、release、直接设定）
+- `install.sh` / `tests/install_local.sh` 新增 `fmt.sh` 安装与同步
 
 ### Changed
 - SKILL.md Step 2 改为伪代码（2A/2B），强化 emoji 禁令与港股涨跌色规则
+- `skill.yaml` description 补充历史K线与均线说明，`requires.bins` 新增 `python3`
+- SKILL.md 静默执行原则补充 `fmt.sh` 输出性质说明，前置依赖表格新增 `fmt.sh`
+
+### Removed
+- 移除 `scripts/monitor.sh`、`scripts/query_price.sh`（后者曾触发 ClawHub 安全扫描误报）
 
 ## [2.3.8] - 2026-04-02
 
