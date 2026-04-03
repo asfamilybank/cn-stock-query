@@ -25,7 +25,7 @@
 
 ## 版本与发布
 
-- **发布顺序**：先跑 `bash tests/datasource_check.sh && bash tests/check.sh` 全过，再**完整更新 CHANGELOG.md**，再 bump 版本（`bash bump.sh release`），再发 ClawHub；禁止在测试前 bump，禁止在 CHANGELOG 未完整时 commit
+- **发布顺序**：先跑 `bash tests/datasource_check.sh && bash tests/check.sh` 全过，再**完整更新 CHANGELOG.md**，再 bump 版本（`bash bump.sh release`），再**逐项核查 ClawHub 安全扫描项**（见"安全扫描修复规范"四类），再发 ClawHub；禁止在测试前 bump，禁止在 CHANGELOG 未完整时 commit
 - **版本管理**：使用 `bump.sh` 统一管理（自动同步四处）；预发布格式 `X.Y.Z-alpha.N`（`bash bump.sh minor alpha` 开启，`bash bump.sh alpha` 递增，`bash bump.sh release` 发正式版）
 - 版本号需在三处同步维护：`skill.yaml`、`SKILL.md`（frontmatter）、`clawhub.json`（发布时 ClawHub 从中获取 tagline、description、category、tags 等元数据）；`bump.sh` 已自动处理四处（含 SKILL.md 正文）
 - 注意：`SKILL.md` Step 0 正文含硬编码版本字符串（`stock-query vX.X.X`），`bump.sh` 已自动处理；手动 bump 时需用 `replace_all` 一并替换
