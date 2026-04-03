@@ -1,6 +1,6 @@
 ---
 name: stock-query
-version: 2.3.8
+version: 2.4.0
 description: >
   查询全球主要市场股票实时行情（A 股、港股、美股、ETF、场外基金、主要指数），支持批量查询、持仓市值计算与个股历史K线。
   同时支持在用户显式指令下管理本地 portfolio.csv 自选股/持仓文件（增/删/改/查）；文件仅含股票代码、名称、持仓、成本价，禁止存放账户凭证或密钥。
@@ -35,6 +35,7 @@ allowed-tools:
 | 工具 | 说明 |
 |------|------|
 | `scripts/sq.sh` | 行情查询 CLI，内部使用 `curl` + `iconv` |
+| `scripts/fmt.sh` | 格式化输出工具，由 `sq.sh --format` 调用，依赖 `python3`，输出人类可读的 Markdown 表格 |
 
 ## 支持的市场与标的
 
@@ -57,12 +58,12 @@ allowed-tools:
 
 version 输出：
 ```
-stock-query v2.3.8
+stock-query v2.4.0
 ```
 
 help 输出：
 ```
-stock-query v2.3.8 — 全球股票/ETF/基金/指数实时行情查询
+stock-query v2.4.0 — 全球股票/ETF/基金/指数实时行情查询
 
 用法：
   /stock-query <代码> [代码2 ...]   查询一个或多个标的实时行情
@@ -102,7 +103,7 @@ stock-query v2.3.8 — 全球股票/ETF/基金/指数实时行情查询
 
 **⛔ 严禁向用户输出任何中间推理或过程信息。** 这是最高优先级约束，覆盖所有步骤。
 
-> 本约束仅适用于 Claude 的对话文本输出。`scripts/sq.sh` stdout 仅输出结构化数据供 Claude 内部消费：行情/基金命令输出 JSON 数组，`pfile` 命令输出文件绝对路径或控制令牌 `NOT_FOUND`；stderr 输出错误/用法提示。脚本不向用户界面打印任何过程信息。
+> 本约束仅适用于 Claude 的对话文本输出。`scripts/sq.sh` stdout 仅输出结构化数据供 Claude 内部消费：行情/基金命令输出 JSON 数组，`pfile` 命令输出文件绝对路径或控制令牌 `NOT_FOUND`；stderr 输出错误/用法提示。`scripts/fmt.sh` 是格式化渲染层，接收 `sq.sh` 的 JSON 输出，输出供用户直接查看的 Markdown 表格（含涨跌 emoji、CJK 对齐、均线列）；其 stdout 为最终展示内容，非过程日志。两个脚本均不向用户界面打印任何过程信息。
 
 以下内容**绝对禁止出现**在回复中：
 - 市场/类型判断（如"014978 是场外基金"）
@@ -240,15 +241,18 @@ fi
 
 ### Step 2: 查询并格式化输出
 
-```bash
-# 标准模式（默认）
-bash scripts/sq.sh get <code1> [code2 ...] --format table
+```
+Step 2A: 执行命令（不得省略 --format 参数，单支/批量/任意市场均适用）
+  detail_mode = false → bash scripts/sq.sh get <code1> [code2 ...] --format table
+  detail_mode = true  → bash scripts/sq.sh get <code1> [code2 ...] --format detail
 
-# 详细模式（detail_mode = true）
-bash scripts/sq.sh get <code1> [code2 ...] --format detail
+Step 2B: 将命令的 stdout 原样作为回复返回
+  ⛔ 不得解析 JSON 自行构建表格
+  ⛔ 不得修改 emoji 字符（A股/港股：涨🔴跌🟢；美股：涨🟩跌🟥）
+  ⛔ 不得添加、删除或重排列
 ```
 
-直接执行上述命令，将输出原样呈现给用户。`--format` 已内置所有格式化规则（emoji 涨跌标识、CJK 对齐、基金估值标注、QDII 脚注、`null` 显示为 `—`）。
+**⛔ 特别注意：港股跌幅用 🟢（非 🔴）。** A股、港股均遵循中国市场惯例：上涨 🔴，下跌 🟢，平盘 ⚪。命令输出已正确处理，勿覆盖。
 
 ### Step 4: 持仓市值计算（可选）
 

@@ -12,6 +12,7 @@ BASE_URL="https://raw.githubusercontent.com/${REPO}/${BRANCH}"
 SKILL_FILE_URL="${BASE_URL}/SKILL.md"
 EXAMPLES_PORTFOLIO_URL="${BASE_URL}/assets/portfolio.csv"
 SQ_URL="${BASE_URL}/scripts/sq.sh"
+FMT_SH_URL="${BASE_URL}/scripts/fmt.sh"
 PORTFOLIO_SH_URL="${BASE_URL}/scripts/portfolio.sh"
 # Parse args
 PROJECT_INSTALL=false
@@ -49,8 +50,9 @@ extract_version() {
 TMP_SKILL="$(mktemp)"
 TMP_PORTFOLIO="$(mktemp)"
 TMP_SQ="$(mktemp)"
+TMP_FMT_SH="$(mktemp)"
 TMP_PORTFOLIO_SH="$(mktemp)"
-trap 'rm -f "${TMP_SKILL}" "${TMP_PORTFOLIO}" "${TMP_SQ}" "${TMP_PORTFOLIO_SH}"' EXIT
+trap 'rm -f "${TMP_SKILL}" "${TMP_PORTFOLIO}" "${TMP_SQ}" "${TMP_FMT_SH}" "${TMP_PORTFOLIO_SH}"' EXIT
 
 echo "正在获取最新版本信息..."
 curl -fsSL "${SKILL_FILE_URL}" -o "${TMP_SKILL}"
@@ -90,9 +92,12 @@ cp "${TMP_PORTFOLIO}" "${INSTALL_DIR}/assets/portfolio.csv"
 
 # 安装/更新 scripts/
 curl -fsSL "${SQ_URL}" -o "${TMP_SQ}"
+curl -fsSL "${FMT_SH_URL}" -o "${TMP_FMT_SH}"
 curl -fsSL "${PORTFOLIO_SH_URL}" -o "${TMP_PORTFOLIO_SH}"
 mkdir -p "${INSTALL_DIR}/scripts"
 cp "${TMP_SQ}" "${INSTALL_DIR}/scripts/sq.sh"
+cp "${TMP_FMT_SH}" "${INSTALL_DIR}/scripts/fmt.sh"
 cp "${TMP_PORTFOLIO_SH}" "${INSTALL_DIR}/scripts/portfolio.sh"
 chmod +x "${INSTALL_DIR}/scripts/sq.sh" \
+         "${INSTALL_DIR}/scripts/fmt.sh" \
          "${INSTALL_DIR}/scripts/portfolio.sh"

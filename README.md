@@ -121,12 +121,7 @@ AAPL 和 TSLA 现在什么价
 | 中文名称乱码     | 确认系统已安装 iconv（macOS/Linux 自带）      |
 | 某只股票查不到    | 检查代码格式：A 股 6 位、港股 5 位、美股英文   |
 | 基金估值显示过期  | QDII 基金属正常延迟；非 QDII 请检查是否为交易日 |
-| 接口超时         | 运行 scripts/monitor.sh 检测接口可用性        |
-
-## 附带脚本
-
-- `scripts/query_price.sh` — 命令行批量查询工具（支持 A 股/港股/美股）
-- `scripts/monitor.sh` — 接口可用性监控（建议每日收盘后运行）
+| 接口超时         | 运行 `bash tests/datasource_check.sh` 检测接口可用性 |
 
 ## License
 

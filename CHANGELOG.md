@@ -1,5 +1,126 @@
 # Changelog
 
+## [2.4.0] - 2026-04-03
+
+### Added
+- 历史K线表格新增 MA5/MA10/MA20/MA60 均线列
+
+### Changed
+- SKILL.md Step 2 改为伪代码（2A/2B），强化 emoji 禁令与港股涨跌色规则
+
+## [2.3.8] - 2026-04-02
+
+### Fixed
+- 从 ClawHub 发布包中移除 `scripts/query_price.sh`（含人类可读 INFO/WARN/ERROR 输出，触发安全扫描误报）
+
+## [2.3.7] - 2026-04-02
+
+### Fixed
+- 删除 `sq.sh` 中永不触发的 PATH_REJECTED 死代码（路径已硬编码，运行时校验无意义）
+- 移除 SKILL.md/`skill.yaml` 中凭证路径自动拒绝的声明，与代码实际行为保持一致
+- 修正静默执行章节：stdout 描述由"结构化数据"改为"JSON 数组或 NOT_FOUND 令牌"
+
+## [2.3.6] - 2026-04-02
+
+### Changed
+- 移除 `PORTFOLIO_FILE` 环境变量支持，`sq.sh`/`portfolio.sh` 改为直接遍历两个默认安装路径
+- `skill.yaml` 删除 `env:` 块和 `config.portfolio_file`，消除 ClawHub Credentials 警告
+- SKILL.md `description` 补全 Purpose & Capability（文件管理能力、权限范围、网络域名白名单）
+- `tests/check.sh` L6.7 改用临时 `mv` 代替 `PORTFOLIO_FILE` 模拟 NOT_FOUND
+
+## [2.3.5] - 2026-04-02
+
+### Changed
+- `examples/` 目录重命名为 `assets/`，发布包和安装路径同步更新
+
+## [2.3.4] - 2026-04-02
+
+### Fixed
+- 修复 ClawHub 安全扫描警告：SKILL.md 静默执行原则补充说明（仅约束 Claude 对话输出，脚本 stdout 为结构化 JSON）
+- SKILL.md Command 1 增加 PATH_REJECTED 处理分支
+- `skill.yaml` description 补充路径校验行为说明
+
+## [2.3.1] - 2026-04-01
+
+### Fixed
+- A股/港股成交量展示由原始手数换算为万手，与市场惯例一致
+
+## [2.3.0] - 2026-04-01
+
+### Added
+- 新增 `scripts/sq.sh`：独立行情查询 CLI，支持 `get`/`fund`/`hist`/`pfile` 四个子命令，输出结构化 JSON
+- 新增 `tests/check.sh`：L1–L6 全自动 shell 断言（38 项），覆盖市场识别、字段完整性、emoji 规则、portfolio CRUD
+
+### Changed
+- Portfolio 管理从 Command 3 重命名为 **Command 1**（最高优先路由）
+- 合并 `claude/SKILL.md` 与根目录 `SKILL.md` 为单一文件，消除双维护负担
+- 重写 `tests/README.md` 和 `tests/cases.md`，统一测试分层与用例编号
+
+## [2.2.1] - 2026-03-31
+
+### Added
+- 新增 `tests/`：L0–L6 完整测试套件（`datasource_check.sh`、`install_local.sh`、`cases.md`）
+
+### Fixed
+- 强化静默执行原则：明确禁止输出市场/类型判断、数据源切换等过程信息
+- 修复批量查询 emoji 混淆：每行按自身市场独立判断，禁止跨行影响
+- 修复 Step 6b 竖向键值对：任何情况下强制使用横向宽表格
+- 修复 Step 6a 持仓=0 条目缺失：伪代码分步逻辑（Step A/B/C/D），Step D 不得跳过
+- 修复 Step 6 美股盈亏 emoji：P&L 列遵循市场规则（🟩/🟥）
+
+## [2.2.0] - 2026-03-25
+
+### Added
+- 新增东方财富 `push2.eastmoney.com` 为港股/美股备用数据源
+
+### Changed
+- 港股代码自动补全前置零前置（700→00700，3/4 位均适用）
+- 000xxx 指数白名单替代二次 API 调用，消除延迟和误判风险
+- 场外基金新鲜度判断简化：`gztime_date == today` 判断当日估值
+- Command 1 去除 `portfolio.sh` 路径依赖，改为内联 bash（grep/awk）直接操作 portfolio.csv
+
+## [2.1.2] - 2026-03-25
+
+### Fixed
+- `skill.yaml` 声明 `PORTFOLIO_FILE` 为正式 env 变量，解决 ClawHub "未声明环境变量"告警
+- `skill.yaml` description 补充文件管理能力、文件访问范围、网络访问范围
+- `skill.yaml` permissions 添加内联注释说明各权限用途与限制
+- SKILL.md 新增"权限与操作范围"章节，显式声明 network/shell 限制、文件访问约束、自动触发范围
+
+## [2.1.1] - 2026-03-25
+
+### Fixed
+- 同步两个 SKILL.md 的触发描述为 `TRIGGER when` 措辞
+
+## [2.1.0] - 2026-03-25
+
+### Added
+- 新增 `scripts/portfolio.sh`：portfolio.csv 增删改查 shell 脚本
+- 重构为三命令架构（Meta / 行情查询 / Portfolio 管理），新增 `detail_mode`、基金数据新鲜度检查
+- 输出表格新增昨收列
+
+## [2.0.2] - 2026-03-24
+
+### Added
+- 输出表格新增最高价/最低价字段
+
+## [2.0.1] - 2026-03-24
+
+### Fixed
+- 修正 ClawHub 发布时 display name 误用临时目录名的问题
+
+## [2.0.0] - 2026-03-24
+
+### Added
+- 港股（腾讯财经 `qt.gtimg.cn`）、美股（腾讯财经）支持
+- 美股三大指数（.DJI / .IXIC / .SPX）支持
+- 项目重命名为 `stock-query`，slug/包名全部更新
+- `install.sh` 一键安装脚本，支持版本检测与更新提示
+
+### Changed
+- 数据源首选切换为腾讯财经（原新浪财经降为 A股备用）
+- GBK→UTF-8 编码转换统一处理港股/美股响应
+
 ## [1.0.4] - 2026-03-24
 
 ### Added

@@ -157,16 +157,42 @@ if is_hist:
         print('（无数据）')
         sys.exit(0)
 
-    headers = ['日期', '收盘', '涨跌幅', '开盘', '最高', '最低', '成交量']
+    # Pre-compute MAs in chronological order (klines[0] = oldest)
+    closes_list = [float(str(k['close'])) for k in klines]
+
+    def compute_ma(idx, period):
+        if idx + 1 < period:
+            return None
+        window = closes_list[idx - period + 1: idx + 1]
+        return round(sum(window) / period, 2)
+
+    ma_by_idx = [
+        {'ma5':  compute_ma(i, 5),
+         'ma10': compute_ma(i, 10),
+         'ma20': compute_ma(i, 20),
+         'ma60': compute_ma(i, 60)}
+        for i in range(len(klines))
+    ]
+
+    def f_ma(v):
+        return '—' if v is None else f'{v:.2f}'
+
+    headers = ['日期', '收盘', '涨跌幅', 'MA5', 'MA10', 'MA20', 'MA60', '开盘', '最高', '最低', '成交量']
     rows = []
-    for k in reversed(klines):
-        cp  = k.get('change_pct')
+    for i, k in enumerate(reversed(klines)):
+        orig_idx = len(klines) - 1 - i
+        mas = ma_by_idx[orig_idx]
+        cp   = k.get('change_pct')
         cp_f = float(cp) if cp is not None else None
         dir_ = ('up' if cp_f > 0 else ('down' if cp_f < 0 else 'flat')) if cp_f is not None else 'flat'
         rows.append([
             k.get('date') or '—',
             f_price(k.get('close')),
             f_pct(cp, dir_, market),
+            f_ma(mas['ma5']),
+            f_ma(mas['ma10']),
+            f_ma(mas['ma20']),
+            f_ma(mas['ma60']),
             f_price(k.get('open')),
             f_price(k.get('high')),
             f_price(k.get('low')),
