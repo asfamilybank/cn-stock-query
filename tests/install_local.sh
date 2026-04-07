@@ -37,8 +37,7 @@ cp "$PROJECT_ROOT/skill.yaml" "$SKILL_DIR/skill.yaml"
 mkdir -p "$SKILL_DIR/scripts"
 cp "$PROJECT_ROOT/scripts/sq.sh"           "$SKILL_DIR/scripts/sq.sh"
 cp "$PROJECT_ROOT/scripts/fmt.sh"          "$SKILL_DIR/scripts/fmt.sh"
-cp "$PROJECT_ROOT/scripts/portfolio.sh"    "$SKILL_DIR/scripts/portfolio.sh"
-chmod +x "$SKILL_DIR/scripts/sq.sh" "$SKILL_DIR/scripts/fmt.sh" "$SKILL_DIR/scripts/portfolio.sh"
+chmod +x "$SKILL_DIR/scripts/sq.sh" "$SKILL_DIR/scripts/fmt.sh"
 
 # assets/ 整目录同步（保留目标目录中用户自建文件，只覆盖 assets/）
 cp -r "$PROJECT_ROOT/assets" "$SKILL_DIR/"
@@ -49,8 +48,7 @@ mkdir -p "$_claude_skill_dir/scripts"
 cp "$PROJECT_ROOT/SKILL.md" "$_claude_skill_dir/SKILL.md"
 cp "$PROJECT_ROOT/scripts/sq.sh"           "$_claude_skill_dir/scripts/sq.sh"
 cp "$PROJECT_ROOT/scripts/fmt.sh"          "$_claude_skill_dir/scripts/fmt.sh"
-cp "$PROJECT_ROOT/scripts/portfolio.sh"    "$_claude_skill_dir/scripts/portfolio.sh"
-chmod +x "$_claude_skill_dir/scripts/sq.sh" "$_claude_skill_dir/scripts/fmt.sh" "$_claude_skill_dir/scripts/portfolio.sh"
+chmod +x "$_claude_skill_dir/scripts/sq.sh" "$_claude_skill_dir/scripts/fmt.sh"
 cp -r "$PROJECT_ROOT/assets" "$_claude_skill_dir/"
 
 # ── 输出结果 ──────────────────────────────────────────────────────────────────

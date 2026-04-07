@@ -84,6 +84,7 @@ fi
 # ── DS-5: 东方财富 港股备用 ──────────────────────────────────────────────────
 name="DS-5 东方财富 港股备用 (push2.eastmoney.com, 116.00700)"
 raw=$(curl -s --max-time 8 \
+  -H "Referer: https://finance.eastmoney.com" \
   "https://push2.eastmoney.com/api/qt/stock/get?secid=116.00700&fields=f43,f57,f58,f169,f170&fltt=2" \
   2>/dev/null || echo "")
 if echo "$raw" | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get('data') is not None" 2>/dev/null; then
@@ -97,6 +98,7 @@ fi
 # ── DS-6: 东方财富 美股备用 (NASDAQ) ─────────────────────────────────────────
 name="DS-6 东方财富 美股备用 (push2.eastmoney.com, 105.AAPL)"
 raw=$(curl -s --max-time 8 \
+  -H "Referer: https://finance.eastmoney.com" \
   "https://push2.eastmoney.com/api/qt/stock/get?secid=105.AAPL&fields=f43,f57,f58,f169,f170&fltt=2" \
   2>/dev/null || echo "")
 if echo "$raw" | grep -q '"f58"'; then

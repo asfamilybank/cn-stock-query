@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.5.0] - 2026-04-07
+
+### Added
+- **skills.sh 发布支持**：`npx skills add asfamilybank/stock-query` 一键安装，支持 40+ agent
+- `sq.sh pfile` 新增 `~/.config/stock-query/portfolio.csv` 为主路径（XDG 标准，独立于 skill 安装目录，任何平台更新均不会删除），旧路径保留为 fallback
+
+### Fixed
+- 东方财富备用源（DS-5 港股、DS-6 美股）：`em_stock_fetch()` 补充 `Referer` header，修复直连返回空响应问题；L0 由 6/8 → 8/8 PASS
+
+### Removed
+- 移除 `scripts/portfolio.sh`（v2.2.0 起 Command 1 已改为内联 bash，此脚本仅历史兼容保留，现正式清理）
+- `install.sh` 移除 portfolio.sh 下载与安装步骤
+
 ## [2.4.1] - 2026-04-03
 
 ### Changed

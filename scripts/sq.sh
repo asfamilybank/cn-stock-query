@@ -334,6 +334,7 @@ em_hist_fetch() {
 
 em_stock_fetch() {
   curl -s -m "$TIMEOUT" \
+    -H "Referer: https://finance.eastmoney.com" \
     "https://push2.eastmoney.com/api/qt/stock/get?secid=$1&fields=f43,f57,f58,f169,f170,f47&fltt=2"
 }
 
@@ -843,14 +844,16 @@ cmd_hist() {
 
 # ── sq pfile ──────────────────────────────────────────────────────────────────
 # 定位 portfolio.csv 文件路径，输出绝对路径或 NOT_FOUND
-# 查找顺序：openclaw 默认路径 → claude 默认路径
+# 查找顺序：XDG 配置目录（主） → openclaw → claude → agents（旧路径兼容）
 
 cmd_pfile() {
   local pfile=""
   local _p
   for _p in \
+    "$HOME/.config/stock-query/portfolio.csv" \
     "$HOME/.openclaw/workspace/skills/stock-query/portfolio.csv" \
-    "$HOME/.claude/skills/stock-query/portfolio.csv"; do
+    "$HOME/.claude/skills/stock-query/portfolio.csv" \
+    "$HOME/.agents/skills/stock-query/portfolio.csv"; do
     [[ -f "$_p" ]] && pfile="$_p" && break
   done
 

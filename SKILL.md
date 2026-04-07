@@ -1,11 +1,11 @@
 ---
 name: stock-query
-version: 2.4.1
+version: 2.5.0
 description: >
   查询全球主要市场股票实时行情（A 股、港股、美股、ETF、场外基金、主要指数），支持批量查询、自选市值计算与个股历史K线。
   同时支持在用户显式指令下管理本地 portfolio.csv 自选股文件（增/删/改/查）；文件仅含股票代码、名称、数量、自选价格，禁止存放账户凭证或密钥。
   需要 shell 权限执行：curl（行情 API 请求）、iconv（GBK→UTF-8 转码）、grep/awk/mktemp（文件操作，仅限 portfolio.csv）。
-  文件访问：仅限 portfolio.csv 一个文件，固定在默认安装目录（~/.openclaw/workspace/skills/stock-query/ 或 ~/.claude/skills/stock-query/）下查找，无需配置任何环境变量。
+  文件访问：仅限 portfolio.csv 一个文件，优先查找 ~/.config/stock-query/portfolio.csv，其次兼容旧版安装目录（~/.openclaw/workspace/skills/stock-query/ 或 ~/.claude/skills/stock-query/ 或 ~/.agents/skills/stock-query/），无需配置任何环境变量。
   网络访问：仅限 qt.gtimg.cn、hq.sinajs.cn、push2.eastmoney.com、web.ifzq.gtimg.cn、push2his.eastmoney.com、fundgz.1234567.com.cn、api.fund.eastmoney.com 七个行情数据源。
   TRIGGER when: 用户要求查看股价、行情、净值、自选盈亏、大盘指数、历史走势/K线，或管理自选股文件时，直接调用，无需等待斜杠命令。
   NOT for: 加密货币、期货、期权、外汇。
@@ -24,7 +24,7 @@ allowed-tools:
 | `network` | `scripts/sq.sh` 内部调用行情 API | 仅限 `qt.gtimg.cn`、`hq.sinajs.cn`、`push2.eastmoney.com`、`web.ifzq.gtimg.cn`、`push2his.eastmoney.com`、`fundgz.1234567.com.cn`、`api.fund.eastmoney.com` 七个数据源，不发送用户个人数据 |
 | `shell` | 执行 `curl`、`iconv`、`grep`、`awk`、`mktemp` | 仅操作 `portfolio.csv`；不执行任意命令 |
 
-**文件访问：** 本 skill 仅在用户**显式指令**下读写 `portfolio.csv` 一个文件，固定在默认安装目录（`~/.openclaw/workspace/skills/stock-query/` 或 `~/.claude/skills/stock-query/`）下查找，无需配置任何环境变量。历史数据通过网络实时获取，不写本地文件。
+**文件访问：** 本 skill 仅在用户**显式指令**下读写 `portfolio.csv` 一个文件，优先查找 `~/.config/stock-query/portfolio.csv`，其次兼容旧版安装目录（`~/.openclaw/workspace/skills/stock-query/`、`~/.claude/skills/stock-query/`、`~/.agents/skills/stock-query/`），无需配置任何环境变量。历史数据通过网络实时获取，不写本地文件。
 
 **自动触发范围：** **文件操作（Command 1）不会自动触发**，仅在用户明确发出增/删/改/查 portfolio 指令时执行。
 
@@ -58,12 +58,12 @@ allowed-tools:
 
 version 输出：
 ```
-stock-query v2.4.1
+stock-query v2.5.0
 ```
 
 help 输出：
 ```
-stock-query v2.4.1 — 全球股票/ETF/基金/指数实时行情查询
+stock-query v2.5.0 — 全球股票/ETF/基金/指数实时行情查询
 
 用法：
   /stock-query <代码> [代码2 ...]   查询一个或多个标的实时行情
@@ -133,9 +133,9 @@ echo "$PFILE"
 ```
 未找到自选股文件。请执行以下步骤创建：
 
-1. 复制模板文件（路径替换为你的实际安装目录）：
-   cp ~/.openclaw/workspace/skills/stock-query/assets/portfolio.csv \
-      ~/.openclaw/workspace/skills/stock-query/portfolio.csv
+1. 创建配置目录并复制模板：
+   mkdir -p ~/.config/stock-query
+   cp <skill安装目录>/assets/portfolio.csv ~/.config/stock-query/portfolio.csv
 
 2. 编辑文件，填入你的自选股信息。
 ```
