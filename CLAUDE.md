@@ -21,7 +21,7 @@
 
 **只有一个 SKILL.md，直接修改即可。** 修改后运行 `bash tests/install_local.sh` 同步到 skill 目录。
 
-**新增脚本时须同步五处**：`tests/install_local.sh`（本地开发）、`install.sh`（用户安装）、CLAUDE.md 发布流程命令、`skill.yaml requires.bins`（新增依赖）、SKILL.md `前置依赖` 表格 + `静默执行原则`（声明脚本输出性质）；漏任一处都会导致功能异常或 ClawHub 扫描警告。
+**新增脚本时须同步四处**：`tests/install_local.sh`（本地开发）、CLAUDE.md 发布流程命令、`skill.yaml requires.bins`（新增依赖）、SKILL.md `前置依赖` 表格 + `静默执行原则`（声明脚本输出性质）；漏任一处都会导致功能异常或 ClawHub 扫描警告。
 
 ## 版本与发布
 
@@ -77,7 +77,7 @@ npx skills add asfamilybank/stock-query
 - 不存在时 skill 引导用户 `mkdir -p ~/.config/stock-query` 后从 `assets/portfolio.csv` 复制创建
 - 格式：CSV，表头 `代码,名称,数量,自选价格`，`#` 开头为注释行
 - 名称/数量/自选价格均可留空；数量为 0 表示纯自选（只查行情）
-- `assets/portfolio.csv` 随 skill 一起发布，install.sh 和 clawhub 安装后均可在 skill 目录下找到
+- `assets/portfolio.csv` 随 skill 一起发布，skills.sh 和 clawhub 安装后均可在 skill 目录下找到
 
 ## 安全扫描修复规范（ClawHub OpenClaw Scanner）
 

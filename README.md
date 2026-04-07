@@ -4,30 +4,17 @@
 
 ## 安装 / 更新
 
+**通过 skills.sh（支持 Claude Code、Cursor、Cline 等 40+ agent）：**
+
+```bash
+npx skills add asfamilybank/stock-query
+```
+
 **通过 ClawHub（OpenClaw 格式，自然语言触发）：**
 
 ```bash
 npx clawhub install stock-query
 ```
-
-或手动克隆：
-
-```bash
-cd ~/.openclaw/workspace/skills/
-git clone https://github.com/asfamilybank/stock-query.git
-```
-
-**通过 Claude Code（原生 slash command，`/stock-query` 直接调用）：**
-
-```bash
-# 全局安装或更新（所有项目可用，推荐）
-curl -fsSL https://raw.githubusercontent.com/asfamilybank/stock-query/main/install.sh | bash
-
-# 项目级安装或更新（仅当前项目可用）
-curl -fsSL https://raw.githubusercontent.com/asfamilybank/stock-query/main/install.sh | bash -s -- --project
-```
-
-首次运行为安装，已安装时自动检测版本并更新至最新版本。
 
 ## 功能概览
 
@@ -94,7 +81,7 @@ AAPL 和 TSLA 现在什么价
 | 腾讯财经  | A股/港股/美股（首选）    | 否          |
 | 新浪财经  | A股（备用）             | 否          |
 | 天天基金  | 场外基金估值/净值        | 否          |
-| 东方财富  | 场外基金净值（备用）      | 否          |
+| 东方财富  | 港股/美股备用、场外基金净值 | 否          |
 
 ## 权限说明
 
@@ -112,7 +99,7 @@ AAPL 和 TSLA 现在什么价
 - 腾讯财经为公共 API，过度调用会封 IP（健康频率：≤100 代码/次，间隔 ≥100ms）
 - 美股数据在非交易时段显示上一交易日收盘价
 - QDII 基金净值有 T+2 至 T+7 的系统性延迟
-- 港股/美股暂无备用数据源，腾讯接口不可用时无法降级
+- 港股/美股腾讯接口不可用时降级至东方财富备用源
 
 ## 故障排查
 
