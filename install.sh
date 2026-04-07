@@ -47,6 +47,31 @@ extract_version() {
   grep '^version:' "$1" 2>/dev/null | awk '{print $2}' | tr -d '"'
 }
 
+# semver_gt v1 v2: returns 0 (true) if v1 > v2
+# Handles pre-release: 2.4.0 > 2.4.0-alpha > 2.3.x
+semver_gt() {
+  local v1="$1" v2="$2"
+  [ "$v1" = "$v2" ] && return 1
+
+  local v1c="${v1%%-*}" v2c="${v2%%-*}"
+  local v1pre="" v2pre=""
+  [[ "$v1" == *-* ]] && v1pre="${v1#*-}"
+  [[ "$v2" == *-* ]] && v2pre="${v2#*-}"
+
+  IFS='.' read -ra p1 <<< "$v1c"
+  IFS='.' read -ra p2 <<< "$v2c"
+
+  for i in 0 1 2; do
+    local a="${p1[$i]:-0}" b="${p2[$i]:-0}"
+    (( a > b )) && return 0
+    (( a < b )) && return 1
+  done
+
+  # Core equal: release(无后缀) > pre-release(有后缀)
+  [ -z "$v1pre" ] && [ -n "$v2pre" ] && return 0
+  return 1
+}
+
 TMP_SKILL="$(mktemp)"
 TMP_PORTFOLIO="$(mktemp)"
 TMP_SQ="$(mktemp)"
@@ -70,8 +95,10 @@ if [ -f "${LOCAL_SKILL}" ]; then
   echo "最新版本：      v${REMOTE_VERSION}"
   echo ""
 
-  if [ "${LOCAL_VERSION}" != "unknown" ] && [ "${LOCAL_VERSION}" = "${REMOTE_VERSION}" ]; then
+  if [ "${LOCAL_VERSION}" = "${REMOTE_VERSION}" ]; then
     echo "已是最新版本，无需更新。"
+  elif [ "${LOCAL_VERSION}" != "unknown" ] && semver_gt "${LOCAL_VERSION}" "${REMOTE_VERSION}"; then
+    echo "本地版本 v${LOCAL_VERSION} 高于远端 v${REMOTE_VERSION}，跳过更新。"
   else
     cp "${TMP_SKILL}" "${LOCAL_SKILL}"
     echo "已更新至最新版本 v${REMOTE_VERSION}（原版本 v${LOCAL_VERSION}）"
