@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.5.1] - 2026-04-07
+
+### Fixed
+- SKILL.md description 从 706 字符精简至 123 字符，确保 TRIGGER when / NOT for 不被 Claude Code 250 字符截断限制丢弃
+
+### Changed
+- README 安装方式改为 Skills + ClawHub，移除 install.sh curl 方式
+- README 使用方式合并，不再区分 OpenClaw / Claude Code
+- README 权限说明补充 python3、grep/awk、portfolio.csv 路径
+- README 已知限制修正白名单描述，补充港股历史K线不支持复权，移除已解决条目
+
 ## [2.5.0] - 2026-04-07
 
 ### Added
