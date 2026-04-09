@@ -4,7 +4,7 @@
 
 ## 安装 / 更新
 
-**通过 Skills（支持 Claude Code、Cursor、Cline 等 40+ agent）：**
+**通过 [Skills](https://skills.sh)（支持 Claude Code、Cursor、Cline 等 40+ agent）：**
 
 ```bash
 # 安装
