@@ -7,7 +7,7 @@
 **通过 Skills（支持 Claude Code、Cursor、Cline 等 40+ agent）：**
 
 ```bash
-npx skills add asfamilybank/stock-query
+npx skills add https://github.com/asfamilybank/stock-query --skill stock-query
 ```
 
 **通过 [ClawHub](https://clawhub.ai/asfamilybank/stock-query)（OpenClaw 格式，自然语言触发）：**

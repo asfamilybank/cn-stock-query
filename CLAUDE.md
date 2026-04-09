@@ -55,7 +55,7 @@ rm -rf /tmp/stock-query
 skills.sh 直接读取 GitHub 仓库，**git push 即发布，无额外命令**。用户安装：
 
 ```bash
-npx skills add asfamilybank/stock-query
+npx skills add https://github.com/asfamilybank/stock-query --skill stock-query
 ```
 
 - 安装内容：整个仓库目录（含 `scripts/`、`assets/`、`SKILL.md`）
